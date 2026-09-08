@@ -47,6 +47,9 @@ public class Responsavel : EntidadeBase
     /// <summary>Chave estrangeira da unidade pela qual o responsável responde.</summary>
     public int UnidadeFranqueadaId { get; private set; }
 
+    /// <summary>Unidade pela qual o responsável responde.</summary>
+    public UnidadeFranqueada UnidadeFranqueada { get; private set; } = null!;
+
     /// <summary>
     /// Atualiza cargo e dados de contato do responsável.
     /// </summary>
