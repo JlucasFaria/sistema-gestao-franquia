@@ -1,3 +1,4 @@
+using Franquias.Api.Common.Middlewares;
 using Franquias.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +11,8 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+app.UsarTratamentoDeExcecoes();
 
 await app.PrepararBancoAsync();
 
