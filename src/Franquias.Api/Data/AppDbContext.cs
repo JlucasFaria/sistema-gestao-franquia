@@ -63,6 +63,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+
+        // Depois dos mapeamentos: a carga inicial depende das configurações já aplicadas.
+        CargaInicial.Aplicar(modelBuilder);
     }
 
     /// <summary>
