@@ -34,13 +34,18 @@ public class FornecedorConfiguration : IEntityTypeConfiguration<Fornecedor>
             .HasMaxLength(11)
             .IsRequired();
 
+        builder.HasIndex(f => f.Cnpj)
+            .IsUnique();
+
         builder.OwnsOne(f => f.Endereco, endereco => endereco.ConfigurarEndereco());
 
         builder.Navigation(f => f.Endereco).IsRequired();
 
+        // O vínculo não existe sem o fornecedor: acompanha a exclusão dele.
         builder.HasMany(f => f.Produtos)
             .WithOne(fp => fp.Fornecedor)
-            .HasForeignKey(fp => fp.FornecedorId);
+            .HasForeignKey(fp => fp.FornecedorId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.Navigation(f => f.Produtos)
             .UsePropertyAccessMode(PropertyAccessMode.Field);

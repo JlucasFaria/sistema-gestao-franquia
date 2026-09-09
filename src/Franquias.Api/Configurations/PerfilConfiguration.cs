@@ -22,5 +22,9 @@ public class PerfilConfiguration : IEntityTypeConfiguration<Perfil>
 
         builder.Property(p => p.Descricao)
             .HasMaxLength(200);
+
+        // Cada valor de PerfilAcesso corresponde a exatamente um registro de perfil.
+        builder.HasIndex(p => p.Codigo)
+            .IsUnique();
     }
 }

@@ -26,9 +26,15 @@ public class ProdutoServicoConfiguration : IEntityTypeConfiguration<ProdutoServi
         builder.Property(p => p.EhServico)
             .IsRequired();
 
+        builder.Property(p => p.PrecoBase)
+            .HasPrecision(18, 2)
+            .IsRequired();
+
+        // Categoria com itens vinculados não pode ser apagada.
         builder.HasOne(p => p.Categoria)
             .WithMany()
-            .HasForeignKey(p => p.CategoriaId);
+            .HasForeignKey(p => p.CategoriaId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(p => p.Nome);
     }

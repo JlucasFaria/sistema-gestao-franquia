@@ -34,6 +34,9 @@ public class FranqueadoraConfiguration : IEntityTypeConfiguration<Franqueadora>
             .HasMaxLength(11)
             .IsRequired();
 
+        builder.HasIndex(f => f.Cnpj)
+            .IsUnique();
+
         builder.OwnsOne(f => f.Endereco, endereco => endereco.ConfigurarEndereco());
 
         builder.Navigation(f => f.Endereco).IsRequired();

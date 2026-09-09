@@ -17,8 +17,10 @@ public class InteracaoChamadoConfiguration : IEntityTypeConfiguration<InteracaoC
             .HasMaxLength(2000)
             .IsRequired();
 
+        // Preserva a autoria do histórico: usuário com interações registradas não pode ser apagado.
         builder.HasOne(i => i.Usuario)
             .WithMany()
-            .HasForeignKey(i => i.UsuarioId);
+            .HasForeignKey(i => i.UsuarioId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

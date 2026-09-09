@@ -25,9 +25,29 @@ public class RoyaltyConfiguration : IEntityTypeConfiguration<Royalty>
         builder.Property(r => r.Situacao)
             .IsRequired();
 
+        builder.Property(r => r.FaturamentoBase)
+            .HasPrecision(18, 2)
+            .IsRequired();
+
+        builder.Property(r => r.PercentualAplicado)
+            .HasPrecision(5, 2)
+            .IsRequired();
+
+        builder.Property(r => r.ValorDevido)
+            .HasPrecision(18, 2)
+            .IsRequired();
+
+        builder.Property(r => r.ValorPago)
+            .HasPrecision(18, 2);
+
         builder.HasOne(r => r.UnidadeFranqueada)
             .WithMany()
-            .HasForeignKey(r => r.UnidadeFranqueadaId);
+            .HasForeignKey(r => r.UnidadeFranqueadaId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Impede emitir duas cobranças para a mesma unidade no mesmo período de apuração.
+        builder.HasIndex(r => new { r.UnidadeFranqueadaId, r.PeriodoInicio, r.PeriodoFim })
+            .IsUnique();
 
         // Sustenta a consulta de valores devidos e pagos por unidade.
         builder.HasIndex(r => new { r.UnidadeFranqueadaId, r.Situacao });

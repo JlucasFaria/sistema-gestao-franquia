@@ -32,5 +32,9 @@ public class FranqueadoConfiguration : IEntityTypeConfiguration<Franqueado>
 
         builder.Property(f => f.DataAdesao)
             .IsRequired();
+
+        // Um CPF corresponde a um único contrato de franquia.
+        builder.HasIndex(f => f.Cpf)
+            .IsUnique();
     }
 }

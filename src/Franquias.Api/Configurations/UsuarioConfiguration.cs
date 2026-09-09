@@ -26,8 +26,14 @@ public class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
             .HasMaxLength(100)
             .IsRequired();
 
+        // Credencial de login: garante no banco a regra de e-mail único do UsuarioService.
+        builder.HasIndex(u => u.Email)
+            .IsUnique();
+
+        // Perfil em uso não pode ser apagado enquanto houver usuário vinculado.
         builder.HasOne(u => u.Perfil)
             .WithMany()
-            .HasForeignKey(u => u.PerfilId);
+            .HasForeignKey(u => u.PerfilId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -33,15 +33,19 @@ public class ChamadoSuporteConfiguration : IEntityTypeConfiguration<ChamadoSupor
 
         builder.HasOne(c => c.UnidadeFranqueada)
             .WithMany()
-            .HasForeignKey(c => c.UnidadeFranqueadaId);
+            .HasForeignKey(c => c.UnidadeFranqueadaId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(c => c.UsuarioAbertura)
             .WithMany()
-            .HasForeignKey(c => c.UsuarioAberturaId);
+            .HasForeignKey(c => c.UsuarioAberturaId)
+            .OnDelete(DeleteBehavior.Restrict);
 
+        // A linha do tempo não faz sentido sem o chamado que a originou.
         builder.HasMany(c => c.Interacoes)
             .WithOne(i => i.ChamadoSuporte)
-            .HasForeignKey(i => i.ChamadoSuporteId);
+            .HasForeignKey(i => i.ChamadoSuporteId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.Navigation(c => c.Interacoes)
             .UsePropertyAccessMode(PropertyAccessMode.Field);

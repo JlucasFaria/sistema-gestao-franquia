@@ -19,5 +19,8 @@ public class CategoriaConfiguration : IEntityTypeConfiguration<Categoria>
 
         builder.Property(c => c.Descricao)
             .HasMaxLength(250);
+
+        builder.HasIndex(c => c.Nome)
+            .IsUnique();
     }
 }

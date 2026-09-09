@@ -16,8 +16,17 @@ public class FornecedorProdutoConfiguration : IEntityTypeConfiguration<Fornecedo
         builder.Property(fp => fp.PrazoEntregaEmDias)
             .IsRequired();
 
+        builder.Property(fp => fp.PrecoFornecimento)
+            .HasPrecision(18, 2)
+            .IsRequired();
+
         builder.HasOne(fp => fp.ProdutoServico)
             .WithMany()
-            .HasForeignKey(fp => fp.ProdutoServicoId);
+            .HasForeignKey(fp => fp.ProdutoServicoId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Um fornecedor é homologado uma única vez para cada item do catálogo.
+        builder.HasIndex(fp => new { fp.FornecedorId, fp.ProdutoServicoId })
+            .IsUnique();
     }
 }

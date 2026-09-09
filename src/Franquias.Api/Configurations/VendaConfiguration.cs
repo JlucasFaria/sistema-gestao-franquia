@@ -19,13 +19,20 @@ public class VendaConfiguration : IEntityTypeConfiguration<Venda>
         builder.Property(v => v.Status)
             .IsRequired();
 
+        builder.Property(v => v.ValorTotal)
+            .HasPrecision(18, 2)
+            .IsRequired();
+
+        // Unidade com vendas registradas não pode ser apagada: o histórico financeiro depende dela.
         builder.HasOne(v => v.UnidadeFranqueada)
             .WithMany()
-            .HasForeignKey(v => v.UnidadeFranqueadaId);
+            .HasForeignKey(v => v.UnidadeFranqueadaId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(v => v.Itens)
             .WithOne(i => i.Venda)
-            .HasForeignKey(i => i.VendaId);
+            .HasForeignKey(i => i.VendaId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.Navigation(v => v.Itens)
             .UsePropertyAccessMode(PropertyAccessMode.Field);

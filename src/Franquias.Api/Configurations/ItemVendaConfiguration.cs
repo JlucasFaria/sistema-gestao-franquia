@@ -16,9 +16,19 @@ public class ItemVendaConfiguration : IEntityTypeConfiguration<ItemVenda>
         builder.Property(i => i.Quantidade)
             .IsRequired();
 
+        builder.Property(i => i.PrecoUnitario)
+            .HasPrecision(18, 2)
+            .IsRequired();
+
+        builder.Property(i => i.Subtotal)
+            .HasPrecision(18, 2)
+            .IsRequired();
+
+        // Item do catálogo com venda registrada não pode ser apagado.
         builder.HasOne(i => i.ProdutoServico)
             .WithMany()
-            .HasForeignKey(i => i.ProdutoServicoId);
+            .HasForeignKey(i => i.ProdutoServicoId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // Sustenta o relatório de produtos mais vendidos.
         builder.HasIndex(i => i.ProdutoServicoId);
