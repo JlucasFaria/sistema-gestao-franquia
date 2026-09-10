@@ -19,8 +19,11 @@ public class ProdutosController(IProdutoServicoService produtos) : ControllerBas
     /// <summary>
     /// Lista os itens do catálogo de forma paginada.
     /// </summary>
-    /// <param name="parametros">Página, tamanho e ordenação.</param>
-    /// <param name="filtro">Filtros por categoria e natureza (produto ou serviço).</param>
+    /// <param name="parametros">Página, tamanho, ordenação e busca por nome do item.</param>
+    /// <param name="filtro">
+    /// Filtros por categoria, natureza (produto ou serviço), status no catálogo, cadastro
+    /// ativo ou inativo e disponibilidade para venda.
+    /// </param>
     /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
     /// <response code="200">Página de itens.</response>
     [HttpGet]
