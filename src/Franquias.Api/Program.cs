@@ -1,11 +1,13 @@
+using Franquias.Api.Common.Injecao;
 using Franquias.Api.Common.Middlewares;
 using Franquias.Api.Data;
-using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("ConexaoPadrao")));
+builder.Services
+    .AdicionarPersistencia(builder.Configuration)
+    .AdicionarRepositorios()
+    .AdicionarServicosDeAplicacao();
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
