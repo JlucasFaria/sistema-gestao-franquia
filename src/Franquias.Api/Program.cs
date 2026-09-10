@@ -9,6 +9,7 @@ builder.Services
     .AdicionarRepositorios()
     .AdicionarServicosDeAplicacao()
     .AdicionarAutenticacao(builder.Configuration)
+    .AdicionarAutorizacao()
     .AdicionarDocumentacao();
 
 builder.Services.AddControllers();
