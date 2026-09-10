@@ -43,4 +43,15 @@ public interface IUsuarioService
     /// idempotente.
     /// </summary>
     Task<UsuarioResponse> InativarAsync(int id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Troca o perfil de acesso de um usuário.
+    /// </summary>
+    /// <param name="id">Identificador do usuário.</param>
+    /// <param name="perfilId">Identificador do novo perfil.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
+    Task<UsuarioResponse> VincularPerfilAsync(
+        int id,
+        int perfilId,
+        CancellationToken cancellationToken = default);
 }

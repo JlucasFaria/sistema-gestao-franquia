@@ -110,6 +110,30 @@ public sealed class UsuarioService(
         return UsuarioResponse.De(usuario);
     }
 
+    /// <inheritdoc />
+    public async Task<UsuarioResponse> VincularPerfilAsync(
+        int id,
+        int perfilId,
+        CancellationToken cancellationToken = default)
+    {
+        var usuario = await BuscarOuFalharAsync(id, cancellationToken);
+        var perfil = await BuscarPerfilOuFalharAsync(perfilId, cancellationToken);
+
+        // Rebaixar o último administrador tem o mesmo efeito prático de inativá-lo: a rede
+        // fica sem ninguém capaz de administrá-la. A mesma trava vale para os dois casos.
+        if (perfil.Codigo != PerfilAcesso.Administrador)
+        {
+            await ExigirQueSobreAdministradorAsync(usuario, cancellationToken);
+        }
+
+        usuario.VincularPerfil(perfil.Id);
+
+        usuarios.Atualizar(usuario);
+        await usuarios.SalvarAlteracoesAsync(cancellationToken);
+
+        return UsuarioResponse.De(await BuscarOuFalharAsync(id, cancellationToken));
+    }
+
     /// <summary>
     /// Impede que o último administrador ativo seja inativado. Sem essa trava, uma única
     /// requisição deixaria a rede sem ninguém capaz de cadastrar usuários ou reativar
@@ -129,8 +153,8 @@ public sealed class UsuarioService(
         if (administradoresAtivos <= 1)
         {
             throw new RegraDeNegocioException(
-                "Este é o único administrador ativo da rede e não pode ser inativado. "
-                + "Cadastre ou ative outro administrador antes.");
+                "Este é o único administrador ativo da rede. Cadastre ou ative outro "
+                + "administrador antes de inativá-lo ou trocar o perfil dele.");
         }
     }
 
