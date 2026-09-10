@@ -8,9 +8,13 @@ namespace Franquias.Api.Services;
 /// </summary>
 public interface IFornecedorService
 {
-    /// <summary>Lista os fornecedores de forma paginada.</summary>
+    /// <summary>
+    /// Lista os fornecedores de forma paginada, com busca por nome ou CNPJ e filtros por
+    /// situação e por item homologado.
+    /// </summary>
     Task<PagedResult<FornecedorResponse>> ListarAsync(
         QueryParams parametros,
+        FiltroFornecedoresRequest filtro,
         CancellationToken cancellationToken = default);
 
     /// <summary>Busca um fornecedor pelo identificador.</summary>

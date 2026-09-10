@@ -1,4 +1,5 @@
 using Franquias.Api.Common.Consultas;
+using Franquias.Api.DTOs.Fornecedores;
 using Franquias.Api.Entities;
 
 namespace Franquias.Api.Repositories;
@@ -26,8 +27,12 @@ public interface IFornecedorRepositorio : IRepositorio<Fornecedor>
     /// </summary>
     Task<Fornecedor?> ObterComProdutosAsync(int id, CancellationToken cancellationToken = default);
 
-    /// <summary>Lista os fornecedores de forma paginada.</summary>
+    /// <summary>
+    /// Lista os fornecedores de forma paginada, com busca por nome ou CNPJ e os filtros
+    /// informados.
+    /// </summary>
     Task<PagedResult<Fornecedor>> ListarAsync(
         QueryParams parametros,
+        FiltroFornecedoresRequest filtro,
         CancellationToken cancellationToken = default);
 }

@@ -15,9 +15,10 @@ public sealed class FornecedorService(IFornecedorRepositorio fornecedores) : IFo
     /// <inheritdoc />
     public async Task<PagedResult<FornecedorResponse>> ListarAsync(
         QueryParams parametros,
+        FiltroFornecedoresRequest filtro,
         CancellationToken cancellationToken = default)
     {
-        var pagina = await fornecedores.ListarAsync(parametros, cancellationToken);
+        var pagina = await fornecedores.ListarAsync(parametros, filtro, cancellationToken);
 
         return pagina.Converter(FornecedorResponse.De);
     }

@@ -19,7 +19,10 @@ public class FornecedoresController(IFornecedorService fornecedores) : Controlle
     /// <summary>
     /// Lista os fornecedores de forma paginada.
     /// </summary>
-    /// <param name="parametros">Página, tamanho e ordenação.</param>
+    /// <param name="parametros">
+    /// Página, tamanho, ordenação e busca por nome fantasia, razão social ou trecho do CNPJ.
+    /// </param>
+    /// <param name="filtro">Filtros por situação (ativo ou inativo) e por item homologado.</param>
     /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
     /// <response code="200">Página de fornecedores.</response>
     [HttpGet]
@@ -27,9 +30,10 @@ public class FornecedoresController(IFornecedorService fornecedores) : Controlle
     [ProducesResponseType(typeof(PagedResult<FornecedorResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<FornecedorResponse>>> Listar(
         [FromQuery] QueryParams parametros,
+        [FromQuery] FiltroFornecedoresRequest filtro,
         CancellationToken cancellationToken)
     {
-        var pagina = await fornecedores.ListarAsync(parametros, cancellationToken);
+        var pagina = await fornecedores.ListarAsync(parametros, filtro, cancellationToken);
 
         return Ok(pagina);
     }
