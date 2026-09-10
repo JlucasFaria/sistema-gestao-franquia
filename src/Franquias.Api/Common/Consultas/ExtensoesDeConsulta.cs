@@ -75,4 +75,18 @@ public static class ExtensoesDeConsulta
 
         return new PagedResult<T>(itens, total, parametros.Pagina, parametros.TamanhoPagina);
     }
+
+    /// <summary>
+    /// Converte os itens de uma página preservando os metadados de paginação. Evita que
+    /// cada serviço remonte o <see cref="PagedResult{T}"/> à mão ao projetar entidades em
+    /// DTOs, o que arriscaria perder o total ou a página no caminho.
+    /// </summary>
+    public static PagedResult<TDestino> Converter<TOrigem, TDestino>(
+        this PagedResult<TOrigem> pagina,
+        Func<TOrigem, TDestino> projecao) =>
+        new(
+            [.. pagina.Itens.Select(projecao)],
+            pagina.Total,
+            pagina.Pagina,
+            pagina.TamanhoPagina);
 }
