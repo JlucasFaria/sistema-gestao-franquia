@@ -1,6 +1,7 @@
 using Franquias.Api.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Franquias.Api.Data;
 
@@ -64,8 +65,45 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
+        PadronizarDatasEmUtc(modelBuilder);
+
         // Depois dos mapeamentos: a carga inicial depende das configurações já aplicadas.
         CargaInicial.Aplicar(modelBuilder);
+    }
+
+    /// <summary>
+    /// Marca como UTC toda data lida do banco. O SQLite grava datas como texto e não
+    /// preserva o <see cref="DateTimeKind"/>, de modo que os valores voltariam como
+    /// <see cref="DateTimeKind.Unspecified"/> — e seriam serializados em JSON sem o sufixo
+    /// "Z", deixando o cliente sem saber o fuso. Como toda escrita usa
+    /// <see cref="DateTime.UtcNow"/>, marcar na leitura restaura a informação correta.
+    /// </summary>
+    private static void PadronizarDatasEmUtc(ModelBuilder modelBuilder)
+    {
+        var paraUtc = new ValueConverter<DateTime, DateTime>(
+            valor => valor,
+            valor => DateTime.SpecifyKind(valor, DateTimeKind.Utc));
+
+        var paraUtcAnulavel = new ValueConverter<DateTime?, DateTime?>(
+            valor => valor,
+            valor => valor.HasValue
+                ? DateTime.SpecifyKind(valor.Value, DateTimeKind.Utc)
+                : valor);
+
+        foreach (var tipo in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var propriedade in tipo.GetProperties())
+            {
+                if (propriedade.ClrType == typeof(DateTime))
+                {
+                    propriedade.SetValueConverter(paraUtc);
+                }
+                else if (propriedade.ClrType == typeof(DateTime?))
+                {
+                    propriedade.SetValueConverter(paraUtcAnulavel);
+                }
+            }
+        }
     }
 
     /// <summary>
