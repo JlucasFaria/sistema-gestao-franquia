@@ -35,8 +35,25 @@ public static class ExtensoesDeConsulta
 
         // Monta e => e.Propriedade e chama Queryable.OrderBy/OrderByDescending com ela.
         var parametro = Expression.Parameter(typeof(T), "e");
-        var acesso = Expression.MakeMemberAccess(parametro, propriedade);
-        var seletor = Expression.Lambda(acesso, parametro);
+        Expression chave = Expression.MakeMemberAccess(parametro, propriedade);
+        var tipoDaChave = propriedade.PropertyType;
+
+        // O SQLite grava decimal como texto, e o provider do EF recusa ordenar por ele
+        // (NotSupportedException). A chave vira double, que o EF traduz em CAST(... AS REAL):
+        // a ordenação passa a ser numérica e os valores devolvidos continuam decimais, já
+        // que o double serve apenas para decidir a ordem.
+        if (tipoDaChave == typeof(decimal))
+        {
+            chave = Expression.Convert(chave, typeof(double));
+            tipoDaChave = typeof(double);
+        }
+        else if (tipoDaChave == typeof(decimal?))
+        {
+            chave = Expression.Convert(chave, typeof(double?));
+            tipoDaChave = typeof(double?);
+        }
+
+        var seletor = Expression.Lambda(chave, parametro);
 
         var metodo = parametros.Decrescente
             ? nameof(Queryable.OrderByDescending)
@@ -45,7 +62,7 @@ public static class ExtensoesDeConsulta
         var chamada = Expression.Call(
             typeof(Queryable),
             metodo,
-            [typeof(T), propriedade.PropertyType],
+            [typeof(T), tipoDaChave],
             consulta.Expression,
             Expression.Quote(seletor));
 
