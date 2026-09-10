@@ -1,21 +1,26 @@
+using Franquias.Api.Common.Injecao;
+using Franquias.Api.Common.Middlewares;
 using Franquias.Api.Data;
-using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("ConexaoPadrao")));
+builder.Services
+    .AdicionarPersistencia(builder.Configuration)
+    .AdicionarRepositorios()
+    .AdicionarServicosDeAplicacao()
+    .AdicionarDocumentacao();
 
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+app.UsarTratamentoDeExcecoes();
 
 await app.PrepararBancoAsync();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UsarDocumentacao();
 }
 
 app.UseHttpsRedirection();
