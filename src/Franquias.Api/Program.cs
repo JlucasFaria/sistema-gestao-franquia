@@ -8,6 +8,8 @@ builder.Services
     .AdicionarPersistencia(builder.Configuration)
     .AdicionarRepositorios()
     .AdicionarServicosDeAplicacao()
+    .AdicionarAutenticacao(builder.Configuration)
+    .AdicionarAutorizacao()
     .AdicionarDocumentacao();
 
 builder.Services.AddControllers();
@@ -24,7 +26,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 
 await app.RunAsync();

@@ -86,6 +86,7 @@ public sealed class TratamentoDeExcecoesMiddleware(
     /// </summary>
     private static (int Status, string Titulo) Mapear(Exception excecao) => excecao switch
     {
+        CredenciaisInvalidasException => (StatusCodes.Status401Unauthorized, "Não autenticado"),
         NaoEncontradoException => (StatusCodes.Status404NotFound, "Recurso não encontrado"),
         ConflitoException => (StatusCodes.Status409Conflict, "Conflito com um registro existente"),
         RegraDeNegocioException => (StatusCodes.Status422UnprocessableEntity, "Regra de negócio violada"),

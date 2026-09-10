@@ -10,6 +10,7 @@ public static class ExtensoesDeSwagger
 {
     private const string NomeDoDocumento = "v1";
     private const string TituloDaApi = "API de Gestão de Franquias";
+    private const string EsquemaBearer = "Bearer";
 
     /// <summary>
     /// Registra o gerador da especificação OpenAPI, incluindo os comentários XML do
@@ -32,6 +33,7 @@ public static class ExtensoesDeSwagger
             });
 
             IncluirComentariosXml(opcoes);
+            ConfigurarAutenticacaoBearer(opcoes);
         });
 
         return servicos;
@@ -51,6 +53,40 @@ public static class ExtensoesDeSwagger
         });
 
         return app;
+    }
+
+    /// <summary>
+    /// Declara o esquema Bearer, para que a interface do Swagger ofereça o botão de
+    /// autorização e passe a enviar o token nas requisições de teste.
+    /// </summary>
+    private static void ConfigurarAutenticacaoBearer(Swashbuckle.AspNetCore.SwaggerGen.SwaggerGenOptions opcoes)
+    {
+        opcoes.AddSecurityDefinition(EsquemaBearer, new OpenApiSecurityScheme
+        {
+            Name = "Authorization",
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            In = ParameterLocation.Header,
+            Description =
+                "Cole apenas o token devolvido por POST /api/auth/login. "
+                + "O prefixo 'Bearer ' é acrescentado automaticamente."
+        });
+
+        opcoes.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = EsquemaBearer
+                    }
+                },
+                Array.Empty<string>()
+            }
+        });
     }
 
     private static void IncluirComentariosXml(Swashbuckle.AspNetCore.SwaggerGen.SwaggerGenOptions opcoes)
