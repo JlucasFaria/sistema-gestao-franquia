@@ -2,6 +2,7 @@ using Franquias.Api.Common.Consultas;
 using Franquias.Api.Common.Excecoes;
 using Franquias.Api.DTOs.Usuarios;
 using Franquias.Api.Entities;
+using Franquias.Api.Entities.Enums;
 using Franquias.Api.Repositories;
 
 namespace Franquias.Api.Services;
@@ -74,6 +75,63 @@ public sealed class UsuarioService(
         await usuarios.SalvarAlteracoesAsync(cancellationToken);
 
         return UsuarioResponse.De(usuario);
+    }
+
+    /// <inheritdoc />
+    public async Task<UsuarioResponse> AtivarAsync(
+        int id,
+        CancellationToken cancellationToken = default)
+    {
+        var usuario = await BuscarOuFalharAsync(id, cancellationToken);
+
+        // Ativar() não faz nada se já estiver ativo, então repetir a chamada é inofensivo.
+        usuario.Ativar();
+
+        usuarios.Atualizar(usuario);
+        await usuarios.SalvarAlteracoesAsync(cancellationToken);
+
+        return UsuarioResponse.De(usuario);
+    }
+
+    /// <inheritdoc />
+    public async Task<UsuarioResponse> InativarAsync(
+        int id,
+        CancellationToken cancellationToken = default)
+    {
+        var usuario = await BuscarOuFalharAsync(id, cancellationToken);
+
+        await ExigirQueSobreAdministradorAsync(usuario, cancellationToken);
+
+        usuario.Inativar();
+
+        usuarios.Atualizar(usuario);
+        await usuarios.SalvarAlteracoesAsync(cancellationToken);
+
+        return UsuarioResponse.De(usuario);
+    }
+
+    /// <summary>
+    /// Impede que o último administrador ativo seja inativado. Sem essa trava, uma única
+    /// requisição deixaria a rede sem ninguém capaz de cadastrar usuários ou reativar
+    /// contas — e o bloqueio só seria reversível mexendo direto no banco.
+    /// </summary>
+    private async Task ExigirQueSobreAdministradorAsync(
+        Usuario usuario,
+        CancellationToken cancellationToken)
+    {
+        if (!usuario.Ativo || usuario.Perfil.Codigo != PerfilAcesso.Administrador)
+        {
+            return;
+        }
+
+        var administradoresAtivos = await usuarios.ContarAdministradoresAtivosAsync(cancellationToken);
+
+        if (administradoresAtivos <= 1)
+        {
+            throw new RegraDeNegocioException(
+                "Este é o único administrador ativo da rede e não pode ser inativado. "
+                + "Cadastre ou ative outro administrador antes.");
+        }
     }
 
     private async Task<Usuario> BuscarOuFalharAsync(int id, CancellationToken cancellationToken) =>

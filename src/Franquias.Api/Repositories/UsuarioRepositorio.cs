@@ -1,6 +1,7 @@
 using Franquias.Api.Common.Consultas;
 using Franquias.Api.Data;
 using Franquias.Api.Entities;
+using Franquias.Api.Entities.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Franquias.Api.Repositories;
@@ -84,6 +85,16 @@ public class UsuarioRepositorio(AppDbContext contexto)
 
         return await ordenada.PaginarAsync(parametros, cancellationToken);
     }
+
+    /// <inheritdoc />
+    public async Task<int> ContarAdministradoresAtivosAsync(
+        CancellationToken cancellationToken = default) =>
+        await Conjunto
+            .AsNoTracking()
+            .CountAsync(
+                usuario => usuario.Ativo
+                    && usuario.Perfil.Codigo == PerfilAcesso.Administrador,
+                cancellationToken);
 
     private static string NormalizarEmail(string email) => email.Trim().ToLowerInvariant();
 }

@@ -32,4 +32,15 @@ public interface IUsuarioService
         int id,
         AtualizarUsuarioRequest requisicao,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Reativa um usuário, devolvendo-lhe o acesso. Operação idempotente.
+    /// </summary>
+    Task<UsuarioResponse> AtivarAsync(int id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Inativa um usuário, sem removê-lo da base, bloqueando a autenticação. Operação
+    /// idempotente.
+    /// </summary>
+    Task<UsuarioResponse> InativarAsync(int id, CancellationToken cancellationToken = default);
 }

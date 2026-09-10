@@ -104,4 +104,46 @@ public class UsuariosController(IUsuarioService usuarios) : ControllerBase
 
         return Ok(usuario);
     }
+
+    /// <summary>
+    /// Reativa um usuário, devolvendo-lhe o acesso ao sistema.
+    /// </summary>
+    /// <param name="id">Identificador do usuário.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
+    /// <response code="200">Usuário ativo. Repetir a chamada não produz efeito adicional.</response>
+    /// <response code="404">Usuário inexistente.</response>
+    [HttpPatch("{id:int}/ativar")]
+    [Authorize(Policy = PoliticasDeAcesso.Administrador)]
+    [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<UsuarioResponse>> Ativar(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var usuario = await usuarios.AtivarAsync(id, cancellationToken);
+
+        return Ok(usuario);
+    }
+
+    /// <summary>
+    /// Inativa um usuário, bloqueando a autenticação sem apagar o cadastro nem o histórico.
+    /// </summary>
+    /// <param name="id">Identificador do usuário.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
+    /// <response code="200">Usuário inativo. Repetir a chamada não produz efeito adicional.</response>
+    /// <response code="404">Usuário inexistente.</response>
+    /// <response code="422">Tentativa de inativar o último administrador ativo da rede.</response>
+    [HttpPatch("{id:int}/inativar")]
+    [Authorize(Policy = PoliticasDeAcesso.Administrador)]
+    [ProducesResponseType(typeof(UsuarioResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<UsuarioResponse>> Inativar(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var usuario = await usuarios.InativarAsync(id, cancellationToken);
+
+        return Ok(usuario);
+    }
 }

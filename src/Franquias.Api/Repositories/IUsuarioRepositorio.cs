@@ -37,4 +37,10 @@ public interface IUsuarioRepositorio : IRepositorio<Usuario>
         QueryParams parametros,
         bool? apenasAtivos,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Conta quantos administradores ativos existem. Sustenta a regra que impede a rede de
+    /// ficar sem ninguém capaz de administrá-la.
+    /// </summary>
+    Task<int> ContarAdministradoresAtivosAsync(CancellationToken cancellationToken = default);
 }
