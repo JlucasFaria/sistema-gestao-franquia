@@ -63,13 +63,39 @@ public class UnidadeRepositorio(AppDbContext contexto)
             consulta = consulta.Where(unidade => unidade.FranqueadoId == filtro.FranqueadoId);
         }
 
+        if (filtro.Ativo is not null)
+        {
+            consulta = consulta.Where(unidade => unidade.Ativo == filtro.Ativo);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filtro.Cidade))
+        {
+            var cidade = $"%{filtro.Cidade.Trim()}%";
+
+            consulta = consulta.Where(unidade => EF.Functions.Like(unidade.Endereco.Cidade, cidade));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filtro.Uf))
+        {
+            var uf = filtro.Uf.Trim().ToUpperInvariant();
+
+            consulta = consulta.Where(unidade => unidade.Endereco.Uf == uf);
+        }
+
         if (!string.IsNullOrWhiteSpace(parametros.Busca))
         {
             var termo = $"%{parametros.Busca.Trim()}%";
+            var digitos = parametros.Busca.SomenteDigitos();
 
+            // Busca livre por nome (fantasia ou razão social), cidade, CNPJ ou nome de algum
+            // responsável. O CNPJ só participa quando o termo tem dígitos: um termo só de
+            // letras viraria um LIKE vazio no CNPJ e casaria com todas as unidades.
             consulta = consulta.Where(unidade =>
                 EF.Functions.Like(unidade.NomeFantasia, termo)
-                || EF.Functions.Like(unidade.RazaoSocial, termo));
+                || EF.Functions.Like(unidade.RazaoSocial, termo)
+                || EF.Functions.Like(unidade.Endereco.Cidade, termo)
+                || (digitos != string.Empty && unidade.Cnpj.Contains(digitos))
+                || unidade.Responsaveis.Any(responsavel => EF.Functions.Like(responsavel.Nome, termo)));
         }
 
         var ordenada = string.IsNullOrWhiteSpace(parametros.OrdenarPor)

@@ -19,8 +19,12 @@ public class UnidadesController(IUnidadeService unidades) : ControllerBase
     /// <summary>
     /// Lista as unidades de forma paginada.
     /// </summary>
-    /// <param name="parametros">Página, tamanho, ordenação e termo de busca.</param>
-    /// <param name="filtro">Filtros por situação, franqueadora e franqueado.</param>
+    /// <param name="parametros">
+    /// Página, tamanho, ordenação e busca livre por nome, cidade, CNPJ ou nome de responsável.
+    /// </param>
+    /// <param name="filtro">
+    /// Filtros por situação contratual, cadastro ativo ou inativo, cidade, UF, franqueadora e franqueado.
+    /// </param>
     /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
     /// <response code="200">Página de unidades.</response>
     [HttpGet]
