@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Franquias.Api.Common.Injecao;
 using Franquias.Api.Common.Middlewares;
 using Franquias.Api.Data;
@@ -12,7 +13,12 @@ builder.Services
     .AdicionarAutorizacao()
     .AdicionarDocumentacao();
 
-builder.Services.AddControllers();
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(opcoes =>
+        // Enums trafegam pelo nome ("Ativa"), não pelo número: a resposta fica legível e
+        // o cliente não quebra se a ordem dos membros do enum mudar.
+        opcoes.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 var app = builder.Build();
 
