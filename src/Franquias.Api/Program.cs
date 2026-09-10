@@ -7,10 +7,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services
     .AdicionarPersistencia(builder.Configuration)
     .AdicionarRepositorios()
-    .AdicionarServicosDeAplicacao();
+    .AdicionarServicosDeAplicacao()
+    .AdicionarDocumentacao();
 
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
@@ -20,7 +20,7 @@ await app.PrepararBancoAsync();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UsarDocumentacao();
 }
 
 app.UseHttpsRedirection();
