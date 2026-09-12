@@ -4,7 +4,7 @@ using Franquias.Api.DTOs.Estoques;
 namespace Franquias.Api.Services;
 
 /// <summary>
-/// Consulta dos saldos de estoque por unidade franqueada.
+/// Consulta e movimentação dos saldos de estoque por unidade franqueada.
 /// </summary>
 public interface IEstoqueService
 {
@@ -29,5 +29,52 @@ public interface IEstoqueService
     Task<EstoqueResponse> ObterSaldoAsync(
         int unidadeFranqueadaId,
         int produtoServicoId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Dá entrada no estoque. A primeira entrada de um item abre o controle dele na unidade.
+    /// </summary>
+    Task<EstoqueResponse> RegistrarEntradaAsync(
+        int unidadeFranqueadaId,
+        int produtoServicoId,
+        MovimentacaoRequest requisicao,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Dá baixa no estoque, recusando a operação quando o saldo é insuficiente.
+    /// </summary>
+    Task<EstoqueResponse> RegistrarSaidaAsync(
+        int unidadeFranqueadaId,
+        int produtoServicoId,
+        MovimentacaoRequest requisicao,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Corrige o saldo para a quantidade apurada em contagem física.
+    /// </summary>
+    Task<EstoqueResponse> AjustarAsync(
+        int unidadeFranqueadaId,
+        int produtoServicoId,
+        AjusteEstoqueRequest requisicao,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Define o ponto de reposição do item na unidade. Abre o controle com saldo zero caso
+    /// o item ainda não seja controlado ali.
+    /// </summary>
+    Task<EstoqueResponse> DefinirQuantidadeMinimaAsync(
+        int unidadeFranqueadaId,
+        int produtoServicoId,
+        DefinirQuantidadeMinimaRequest requisicao,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lista o histórico de movimentações de um item na unidade, da mais recente para a
+    /// mais antiga.
+    /// </summary>
+    Task<PagedResult<MovimentacaoEstoqueResponse>> ListarMovimentacoesAsync(
+        int unidadeFranqueadaId,
+        int produtoServicoId,
+        QueryParams parametros,
         CancellationToken cancellationToken = default);
 }
