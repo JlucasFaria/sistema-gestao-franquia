@@ -9,7 +9,16 @@ public class EstoqueConfiguration : IEntityTypeConfiguration<Estoque>
 {
     public void Configure(EntityTypeBuilder<Estoque> builder)
     {
-        builder.ToTable("Estoques");
+        // Última barreira contra saldo negativo. O serviço recusa a saída sem saldo e a
+        // entidade também, mas nenhum dos dois alcança um UPDATE feito direto no banco;
+        // a restrição vale para qualquer caminho de escrita.
+        builder.ToTable("Estoques", tabela =>
+        {
+            tabela.HasCheckConstraint("CK_Estoques_QuantidadeNaoNegativa", @"""Quantidade"" >= 0");
+            tabela.HasCheckConstraint(
+                "CK_Estoques_QuantidadeMinimaNaoNegativa",
+                @"""QuantidadeMinima"" >= 0");
+        });
 
         builder.HasKey(e => e.Id);
 
