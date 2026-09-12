@@ -53,6 +53,15 @@ public class EstoqueRepositorio(AppDbContext contexto)
                 estoque.ProdutoServicoId == filtro.ProdutoServicoId);
         }
 
+        if (filtro.AbaixoDoMinimo is not null)
+        {
+            // Reproduz em SQL a regra de Estoque.EstaAbaixoDoMinimo(): o método da entidade
+            // não pode ser traduzido pelo EF, então a comparação é repetida aqui.
+            consulta = filtro.AbaixoDoMinimo.Value
+                ? consulta.Where(estoque => estoque.Quantidade < estoque.QuantidadeMinima)
+                : consulta.Where(estoque => estoque.Quantidade >= estoque.QuantidadeMinima);
+        }
+
         if (!string.IsNullOrWhiteSpace(parametros.Busca))
         {
             var termo = $"%{parametros.Busca.Trim()}%";

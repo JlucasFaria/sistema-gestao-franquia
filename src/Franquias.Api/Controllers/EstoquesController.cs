@@ -19,7 +19,11 @@ public class EstoquesController(IEstoqueService estoques) : ControllerBase
     /// Lista os saldos de estoque da rede de forma paginada.
     /// </summary>
     /// <param name="parametros">Página, tamanho, ordenação e busca por nome do item.</param>
-    /// <param name="filtro">Filtros por unidade e por item do catálogo.</param>
+    /// <param name="filtro">
+    /// Filtros por unidade, por item do catálogo e por itens que atingiram o ponto de
+    /// reposição. Com <c>abaixoDoMinimo=true</c> e sem unidade, devolve o que falta repor
+    /// na rede inteira.
+    /// </param>
     /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
     /// <response code="200">Página de saldos.</response>
     [HttpGet]
