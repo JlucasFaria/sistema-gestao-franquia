@@ -17,4 +17,25 @@ public interface IRoyaltyService
     Task<RoyaltyResponse> GerarAsync(
         GerarRoyaltyRequest requisicao,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Dá baixa no pagamento de uma cobrança em aberto, pendente ou atrasada. O valor pago
+    /// precisa cobrir o valor devido.
+    /// </summary>
+    Task<RoyaltyResponse> RegistrarPagamentoAsync(
+        int id,
+        RegistrarPagamentoRequest requisicao,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Marca como atrasadas as cobranças pendentes cujo vencimento é anterior à data de
+    /// referência. Operação idempotente: repetir não produz efeito, e cobranças pagas nunca
+    /// são afetadas.
+    /// </summary>
+    /// <param name="dataReferencia">Data considerada como hoje na avaliação do vencimento.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
+    /// <returns>Quantidade de cobranças que passaram a atrasadas.</returns>
+    Task<int> AtualizarAtrasosAsync(
+        DateOnly dataReferencia,
+        CancellationToken cancellationToken = default);
 }

@@ -76,6 +76,66 @@ public sealed class RoyaltyService(
         return RoyaltyResponse.De(await BuscarOuFalharAsync(royalty.Id, cancellationToken));
     }
 
+    /// <inheritdoc />
+    public async Task<RoyaltyResponse> RegistrarPagamentoAsync(
+        int id,
+        RegistrarPagamentoRequest requisicao,
+        CancellationToken cancellationToken = default)
+    {
+        var royalty = await BuscarOuFalharAsync(id, cancellationToken);
+
+        // A entidade também recusa quitar duas vezes, mas com uma exceção técnica. Aqui a
+        // recusa vira resposta tratada, informando quando a quitação anterior aconteceu.
+        if (!royalty.EstaEmAberto())
+        {
+            throw new RegraDeNegocioException(
+                $"A cobrança {royalty.Id} já foi quitada em {royalty.DataPagamento:dd/MM/yyyy}.");
+        }
+
+        var dataPagamento = requisicao.DataPagamento!.Value;
+
+        if (dataPagamento > DateOnly.FromDateTime(DateTime.UtcNow))
+        {
+            throw new RegraDeNegocioException("A data do pagamento não pode estar no futuro.");
+        }
+
+        // Pagamento parcial não quita: marcar a cobrança como paga esconderia o saldo que
+        // continua devido. Valor maior é aceito, pois inclui multa e juros de um pagamento em atraso.
+        if (requisicao.ValorPago < royalty.ValorDevido)
+        {
+            throw new RegraDeNegocioException(
+                $"O valor pago ({requisicao.ValorPago:N2}) é menor que o valor devido "
+                + $"({royalty.ValorDevido:N2}). Pagamento parcial não quita a cobrança.");
+        }
+
+        royalty.RegistrarPagamento(dataPagamento, requisicao.ValorPago);
+        await royalties.SalvarAlteracoesAsync(cancellationToken);
+
+        return RoyaltyResponse.De(royalty);
+    }
+
+    /// <inheritdoc />
+    public async Task<int> AtualizarAtrasosAsync(
+        DateOnly dataReferencia,
+        CancellationToken cancellationToken = default)
+    {
+        // A consulta já traz só as pendentes vencidas; a própria entidade confirma a regra
+        // de atraso antes de mudar a situação.
+        var vencidas = await royalties.ListarPendentesVencidasAsync(dataReferencia, cancellationToken);
+
+        foreach (var royalty in vencidas)
+        {
+            royalty.AvaliarAtraso(dataReferencia);
+        }
+
+        if (vencidas.Count > 0)
+        {
+            await royalties.SalvarAlteracoesAsync(cancellationToken);
+        }
+
+        return vencidas.Count;
+    }
+
     /// <summary>
     /// Confere as datas da apuração. O DTO já valida a ordem entre elas; a checagem do
     /// período encerrado depende do relógio e só pode ser feita aqui.
