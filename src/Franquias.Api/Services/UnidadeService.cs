@@ -159,6 +159,32 @@ public sealed class UnidadeService(
         return UnidadeResponse.De(unidade);
     }
 
+    /// <inheritdoc />
+    public async Task<UnidadeResponse> DefinirPercentualRoyaltyAsync(
+        int id,
+        decimal percentual,
+        CancellationToken cancellationToken = default)
+    {
+        // O DTO já limita a faixa, mas a entidade não valida o percentual. Esta checagem
+        // protege qualquer outro caminho que chegue ao serviço sem passar pela API.
+        if (percentual is < 0m or > 100m)
+        {
+            throw new RegraDeNegocioException("O percentual de royalty deve estar entre 0 e 100.");
+        }
+
+        var unidade = await BuscarOuFalharAsync(id, cancellationToken);
+
+        // Reenviar o percentual vigente não é uma alteração contratual: nada é gravado e a
+        // data de atualização continua apontando para a última mudança real.
+        if (unidade.PercentualRoyalty != percentual)
+        {
+            unidade.DefinirPercentualRoyalty(percentual);
+            await unidades.SalvarAlteracoesAsync(cancellationToken);
+        }
+
+        return UnidadeResponse.De(unidade);
+    }
+
     private async Task<UnidadeFranqueada> BuscarOuFalharAsync(int id, CancellationToken cancellationToken) =>
         await unidades.ObterPorIdAsync(id, cancellationToken)
             ?? throw new NaoEncontradoException("Unidade franqueada", id);

@@ -45,4 +45,16 @@ public interface IUnidadeService
     /// continuam vinculados a ela. Operação idempotente.
     /// </summary>
     Task<UnidadeResponse> InativarAsync(int id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Define o percentual de royalty da unidade. Vale para as próximas cobranças: as já
+    /// emitidas mantêm o percentual com que foram geradas.
+    /// </summary>
+    /// <param name="id">Identificador da unidade.</param>
+    /// <param name="percentual">Percentual entre 0 e 100.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
+    Task<UnidadeResponse> DefinirPercentualRoyaltyAsync(
+        int id,
+        decimal percentual,
+        CancellationToken cancellationToken = default);
 }

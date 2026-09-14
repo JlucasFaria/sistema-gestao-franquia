@@ -1,5 +1,6 @@
 using Franquias.Api.Common.Autenticacao;
 using Franquias.Api.Common.Consultas;
+using Franquias.Api.DTOs.Royalties;
 using Franquias.Api.DTOs.Unidades;
 using Franquias.Api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -133,6 +134,37 @@ public class UnidadesController(IUnidadeService unidades) : ControllerBase
         CancellationToken cancellationToken)
     {
         var unidade = await unidades.AlterarSituacaoAsync(id, requisicao.Situacao!.Value, cancellationToken);
+
+        return Ok(unidade);
+    }
+
+    /// <summary>
+    /// Define o percentual de royalty da unidade. Vale para as próximas cobranças; as já
+    /// emitidas mantêm o percentual com que foram geradas. Exige perfil de administrador, por
+    /// ser uma condição contratual com efeito financeiro.
+    /// </summary>
+    /// <param name="id">Identificador da unidade.</param>
+    /// <param name="requisicao">Novo percentual, entre 0 e 100.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
+    /// <response code="200">Percentual definido.</response>
+    /// <response code="400">Percentual fora da faixa ou com mais de duas casas decimais.</response>
+    /// <response code="403">Perfil sem permissão para alterar o percentual.</response>
+    /// <response code="404">Unidade inexistente.</response>
+    [HttpPatch("{id:int}/percentual-royalty")]
+    [Authorize(Policy = PoliticasDeAcesso.Administrador)]
+    [ProducesResponseType(typeof(UnidadeResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<UnidadeResponse>> DefinirPercentualRoyalty(
+        int id,
+        [FromBody] DefinirPercentualRoyaltyRequest requisicao,
+        CancellationToken cancellationToken)
+    {
+        var unidade = await unidades.DefinirPercentualRoyaltyAsync(
+            id,
+            requisicao.PercentualRoyalty,
+            cancellationToken);
 
         return Ok(unidade);
     }
