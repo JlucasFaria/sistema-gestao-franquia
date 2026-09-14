@@ -104,6 +104,72 @@ public sealed class VendaService(
         return VendaResponse.De(await BuscarOuFalharAsync(id, cancellationToken));
     }
 
+    /// <inheritdoc />
+    public async Task<VendaResponse> CancelarAsync(
+        int id,
+        CancellationToken cancellationToken = default)
+    {
+        await unidadeDeTrabalho.ExecutarEmTransacaoAsync(
+            async token =>
+            {
+                var venda = await BuscarOuFalharAsync(id, token);
+
+                // A entidade também recusa o cancelamento repetido, mas com uma exceção técnica.
+                // Aqui a recusa vira resposta tratada e, sobretudo, impede estornar duas vezes
+                // e inflar o saldo.
+                if (venda.Status == StatusVenda.Cancelada)
+                {
+                    throw new RegraDeNegocioException($"A venda {venda.Id} já está cancelada.");
+                }
+
+                // Venda pendente nunca baixou estoque, então não há o que devolver.
+                if (venda.Status == StatusVenda.Confirmada)
+                {
+                    await EstornarEstoqueAsync(venda, token);
+                }
+
+                venda.Cancelar();
+                await vendas.SalvarAlteracoesAsync(token);
+            },
+            cancellationToken);
+
+        return VendaResponse.De(await BuscarOuFalharAsync(id, cancellationToken));
+    }
+
+    /// <summary>
+    /// Devolve ao estoque o que a confirmação baixou. Não verifica se a unidade ainda pode
+    /// operar nem se o item continua à venda: estornar é corrigir o histórico, e a venda de
+    /// uma unidade suspensa ou de um item descontinuado precisa poder ser cancelada do mesmo jeito.
+    /// </summary>
+    private async Task EstornarEstoqueAsync(Venda venda, CancellationToken cancellationToken)
+    {
+        var estornos = venda.Itens
+            .Where(item => item.ProdutoServico.ControlaEstoque())
+            .GroupBy(item => item.ProdutoServicoId)
+            .Select(grupo => (
+                ProdutoServicoId: grupo.Key,
+                Quantidade: grupo.Sum(item => item.Quantidade)));
+
+        foreach (var estorno in estornos)
+        {
+            var estoque = await estoques.ObterPorUnidadeEProdutoAsync(
+                venda.UnidadeFranqueadaId,
+                estorno.ProdutoServicoId,
+                cancellationToken);
+
+            // A confirmação só ocorre com saldo existente, então o registro existe. Se tiver
+            // sido removido por fora da aplicação, o controle é reaberto para a devolução não
+            // se perder.
+            if (estoque is null)
+            {
+                estoque = new Estoque(venda.UnidadeFranqueadaId, estorno.ProdutoServicoId, quantidadeMinima: 0);
+                await estoques.AdicionarAsync(estoque, cancellationToken);
+            }
+
+            estoque.RegistrarEntrada(estorno.Quantidade, $"Estorno da venda {venda.Id}");
+        }
+    }
+
     /// <summary>
     /// Impede venda em unidade que não pode operar. A condição é a mesma de
     /// <see cref="UnidadeFranqueada.PodeOperar"/>: cadastro ativo e situação Ativa ao mesmo

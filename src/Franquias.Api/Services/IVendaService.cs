@@ -38,4 +38,10 @@ public interface IVendaService
     /// continua pendente.
     /// </summary>
     Task<VendaResponse> ConfirmarAsync(int id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Cancela uma venda. Se ela já estava confirmada, o estoque baixado é estornado na mesma
+    /// transação. Venda já cancelada não pode ser cancelada de novo.
+    /// </summary>
+    Task<VendaResponse> CancelarAsync(int id, CancellationToken cancellationToken = default);
 }
