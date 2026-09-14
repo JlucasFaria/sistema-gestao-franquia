@@ -26,6 +26,10 @@ public static class ExtensoesDeServico
         servicos.AddDbContext<AppDbContext>(opcoes =>
             opcoes.UseSqlite(configuracao.GetConnectionString("ConexaoPadrao")));
 
+        // Registro explícito: o nome não segue os sufixos da convenção. Scoped, como o
+        // contexto, para que a transação envolva os mesmos repositórios da requisição.
+        servicos.AddScoped<IUnidadeDeTrabalho, UnidadeDeTrabalho>();
+
         return servicos;
     }
 
