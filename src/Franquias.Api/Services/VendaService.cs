@@ -52,6 +52,8 @@ public sealed class VendaService(
         var unidade = await unidades.ObterPorIdAsync(requisicao.UnidadeFranqueadaId, cancellationToken)
             ?? throw new NaoEncontradoException("Unidade franqueada", requisicao.UnidadeFranqueadaId);
 
+        ExigirUnidadeAptaAVender(unidade);
+
         var catalogo = await CarregarItensVendaveisAsync(requisicao.Itens, cancellationToken);
 
         var venda = new Venda(unidade.Id);
@@ -67,6 +69,28 @@ public sealed class VendaService(
         await vendas.SalvarAlteracoesAsync(cancellationToken);
 
         return VendaResponse.De(await BuscarOuFalharAsync(venda.Id, cancellationToken));
+    }
+
+    /// <summary>
+    /// Impede venda em unidade que não pode operar. A condição é a mesma de
+    /// <see cref="UnidadeFranqueada.PodeOperar"/>: cadastro ativo e situação Ativa ao mesmo
+    /// tempo. Unidade em implantação, suspensa ou encerrada não vende, e unidade inativada
+    /// também não, mesmo que a situação contratual ainda conste como Ativa.
+    /// </summary>
+    private static void ExigirUnidadeAptaAVender(UnidadeFranqueada unidade)
+    {
+        if (unidade.PodeOperar())
+        {
+            return;
+        }
+
+        var motivo = unidade.Ativo
+            ? $"está com a situação {unidade.Situacao}"
+            : "está com o cadastro inativo";
+
+        throw new RegraDeNegocioException(
+            $"A unidade '{unidade.NomeFantasia}' não pode registrar vendas porque {motivo}. "
+            + "Só vendem unidades com situação Ativa e cadastro ativo.");
     }
 
     /// <summary>
