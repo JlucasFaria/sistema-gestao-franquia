@@ -51,4 +51,21 @@ public interface IRoyaltyService
     Task<int> AtualizarAtrasosAsync(
         DateOnly dataReferencia,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Resume os valores devidos, pagos e em aberto de uma unidade. A unidade sem cobranças
+    /// no recorte recebe um resumo zerado.
+    /// </summary>
+    Task<ResumoRoyaltiesUnidadeResponse> ResumirUnidadeAsync(
+        int unidadeFranqueadaId,
+        FiltroResumoRoyaltiesRequest filtro,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Resume os valores devidos, pagos e em aberto de cada unidade da rede que tenha
+    /// cobranças no recorte, da maior para a menor dívida em aberto.
+    /// </summary>
+    Task<IReadOnlyList<ResumoRoyaltiesUnidadeResponse>> ResumirPorUnidadeAsync(
+        FiltroResumoRoyaltiesRequest filtro,
+        CancellationToken cancellationToken = default);
 }

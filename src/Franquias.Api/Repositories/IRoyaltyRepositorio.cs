@@ -36,4 +36,16 @@ public interface IRoyaltyRepositorio : IRepositorio<Royalty>
     Task<IReadOnlyList<Royalty>> ListarPendentesVencidasAsync(
         DateOnly dataReferencia,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Totaliza, no banco, as cobranças agrupadas por unidade. Unidades sem cobrança no
+    /// recorte não aparecem no resultado.
+    /// </summary>
+    /// <param name="unidadeFranqueadaId">Restringe a uma unidade; nulo considera a rede toda.</param>
+    /// <param name="filtro">Recorte de competências.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
+    Task<IReadOnlyList<ResumoRoyaltiesUnidadeResponse>> ResumirPorUnidadeAsync(
+        int? unidadeFranqueadaId,
+        FiltroResumoRoyaltiesRequest filtro,
+        CancellationToken cancellationToken = default);
 }

@@ -124,4 +124,49 @@ public class RoyaltiesController(IRoyaltyService royalties) : ControllerBase
 
         return Ok(new AtualizacaoAtrasosResponse(hoje, quantidade));
     }
+
+    /// <summary>
+    /// Resume os valores devidos, pagos e em aberto de uma unidade.
+    /// </summary>
+    /// <param name="unidadeId">Identificador da unidade.</param>
+    /// <param name="filtro">Recorte de competências.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
+    /// <response code="200">Resumo da unidade, zerado se ela não tiver cobranças no recorte.</response>
+    /// <response code="400">Recorte inválido.</response>
+    /// <response code="404">Unidade inexistente.</response>
+    [HttpGet("unidades/{unidadeId:int}/resumo")]
+    [Authorize(Policy = PoliticasDeAcesso.GestorDeUnidade)]
+    [ProducesResponseType(typeof(ResumoRoyaltiesUnidadeResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ResumoRoyaltiesUnidadeResponse>> ResumirUnidade(
+        int unidadeId,
+        [FromQuery] FiltroResumoRoyaltiesRequest filtro,
+        CancellationToken cancellationToken)
+    {
+        var resumo = await royalties.ResumirUnidadeAsync(unidadeId, filtro, cancellationToken);
+
+        return Ok(resumo);
+    }
+
+    /// <summary>
+    /// Resume os valores devidos, pagos e em aberto de cada unidade da rede com cobranças no
+    /// recorte, da maior para a menor dívida em aberto.
+    /// </summary>
+    /// <param name="filtro">Recorte de competências.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
+    /// <response code="200">Resumo por unidade.</response>
+    /// <response code="400">Recorte inválido.</response>
+    [HttpGet("resumo-por-unidade")]
+    [Authorize(Policy = PoliticasDeAcesso.GestorDeUnidade)]
+    [ProducesResponseType(typeof(IReadOnlyList<ResumoRoyaltiesUnidadeResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IReadOnlyList<ResumoRoyaltiesUnidadeResponse>>> ResumirPorUnidade(
+        [FromQuery] FiltroResumoRoyaltiesRequest filtro,
+        CancellationToken cancellationToken)
+    {
+        var resumos = await royalties.ResumirPorUnidadeAsync(filtro, cancellationToken);
+
+        return Ok(resumos);
+    }
 }

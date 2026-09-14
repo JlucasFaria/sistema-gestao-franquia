@@ -160,6 +160,39 @@ public sealed class RoyaltyService(
         return vencidas.Count;
     }
 
+    /// <inheritdoc />
+    public async Task<ResumoRoyaltiesUnidadeResponse> ResumirUnidadeAsync(
+        int unidadeFranqueadaId,
+        FiltroResumoRoyaltiesRequest filtro,
+        CancellationToken cancellationToken = default)
+    {
+        var unidade = await unidades.ObterPorIdAsync(unidadeFranqueadaId, cancellationToken)
+            ?? throw new NaoEncontradoException("Unidade franqueada", unidadeFranqueadaId);
+
+        await AtualizarAtrasosAsync(DateOnly.FromDateTime(DateTime.UtcNow), cancellationToken);
+
+        var resumos = await royalties.ResumirPorUnidadeAsync(unidade.Id, filtro, cancellationToken);
+
+        return resumos.FirstOrDefault() ?? ResumoRoyaltiesUnidadeResponse.Vazio(unidade.Id, unidade.NomeFantasia);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<ResumoRoyaltiesUnidadeResponse>> ResumirPorUnidadeAsync(
+        FiltroResumoRoyaltiesRequest filtro,
+        CancellationToken cancellationToken = default)
+    {
+        // O atraso entra no resumo: sem esta atualização, cobranças vencidas seriam somadas
+        // como simplesmente pendentes.
+        await AtualizarAtrasosAsync(DateOnly.FromDateTime(DateTime.UtcNow), cancellationToken);
+
+        var resumos = await royalties.ResumirPorUnidadeAsync(null, filtro, cancellationToken);
+
+        return resumos
+            .OrderByDescending(resumo => resumo.TotalEmAberto)
+            .ThenBy(resumo => resumo.Unidade)
+            .ToList();
+    }
+
     /// <summary>
     /// Confere as datas da apuração. O DTO já valida a ordem entre elas; a checagem do
     /// período encerrado depende do relógio e só pode ser feita aqui.

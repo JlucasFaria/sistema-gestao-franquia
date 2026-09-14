@@ -84,4 +84,45 @@ public class RoyaltyRepositorio(AppDbContext contexto)
             .Where(royalty => royalty.Situacao == SituacaoPagamento.Pendente
                 && royalty.DataVencimento < dataReferencia)
             .ToListAsync(cancellationToken);
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// As somas são feitas pelo banco, que as calcula sem perda de precisão. A ordenação fica
+    /// com quem chama: o SQLite não ordena por colunas decimais.
+    /// </remarks>
+    public async Task<IReadOnlyList<ResumoRoyaltiesUnidadeResponse>> ResumirPorUnidadeAsync(
+        int? unidadeFranqueadaId,
+        FiltroResumoRoyaltiesRequest filtro,
+        CancellationToken cancellationToken = default)
+    {
+        var consulta = Conjunto.AsNoTracking();
+
+        if (unidadeFranqueadaId is not null)
+        {
+            consulta = consulta.Where(royalty => royalty.UnidadeFranqueadaId == unidadeFranqueadaId);
+        }
+
+        if (filtro.CompetenciaInicio is not null)
+        {
+            consulta = consulta.Where(royalty => royalty.PeriodoInicio >= filtro.CompetenciaInicio);
+        }
+
+        if (filtro.CompetenciaFim is not null)
+        {
+            consulta = consulta.Where(royalty => royalty.PeriodoFim <= filtro.CompetenciaFim);
+        }
+
+        return await consulta
+            .GroupBy(royalty => new { royalty.UnidadeFranqueadaId, royalty.UnidadeFranqueada.NomeFantasia })
+            .Select(grupo => new ResumoRoyaltiesUnidadeResponse(
+                grupo.Key.UnidadeFranqueadaId,
+                grupo.Key.NomeFantasia,
+                grupo.Count(),
+                grupo.Sum(royalty => royalty.ValorDevido),
+                grupo.Sum(royalty => royalty.Situacao == SituacaoPagamento.Pago ? royalty.ValorPago!.Value : 0m),
+                grupo.Sum(royalty => royalty.Situacao != SituacaoPagamento.Pago ? royalty.ValorDevido : 0m),
+                grupo.Count(royalty => royalty.Situacao == SituacaoPagamento.Atrasado),
+                grupo.Sum(royalty => royalty.Situacao == SituacaoPagamento.Atrasado ? royalty.ValorDevido : 0m)))
+            .ToListAsync(cancellationToken);
+    }
 }
