@@ -17,4 +17,15 @@ public interface IVendaRepositorio : IRepositorio<Venda>
         QueryParams parametros,
         FiltroVendasRequest filtro,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Soma o valor total das vendas confirmadas de uma unidade em um intervalo de datas,
+    /// inclusivo nas duas pontas e comparado em UTC. Vendas pendentes e canceladas não
+    /// compõem faturamento. Sem vendas no intervalo, devolve zero.
+    /// </summary>
+    Task<decimal> SomarFaturamentoConfirmadoAsync(
+        int unidadeFranqueadaId,
+        DateOnly periodoInicio,
+        DateOnly periodoFim,
+        CancellationToken cancellationToken = default);
 }
