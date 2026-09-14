@@ -2,6 +2,7 @@ using Franquias.Api.Common.Consultas;
 using Franquias.Api.Data;
 using Franquias.Api.DTOs.Vendas;
 using Franquias.Api.Entities;
+using Franquias.Api.Entities.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Franquias.Api.Repositories;
@@ -68,6 +69,30 @@ public class VendaRepositorio(AppDbContext contexto)
             : consulta.Ordenar(parametros);
 
         return await ordenada.PaginarAsync(parametros, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// O critério de status reproduz em SQL a regra de <see cref="Venda.ComputaFaturamento"/>,
+    /// que não pode ser traduzida pelo EF. A soma é feita no próprio banco, sobre valores
+    /// decimais, sem trazer as vendas para a memória.
+    /// </remarks>
+    public async Task<decimal> SomarFaturamentoConfirmadoAsync(
+        int unidadeFranqueadaId,
+        DateOnly periodoInicio,
+        DateOnly periodoFim,
+        CancellationToken cancellationToken = default)
+    {
+        var inicio = periodoInicio.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var fimExclusivo = periodoFim.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+        return await Conjunto
+            .AsNoTracking()
+            .Where(venda => venda.UnidadeFranqueadaId == unidadeFranqueadaId
+                && venda.Status == StatusVenda.Confirmada
+                && venda.DataVenda >= inicio
+                && venda.DataVenda < fimExclusivo)
+            .SumAsync(venda => venda.ValorTotal, cancellationToken);
     }
 
     private static IQueryable<Venda> ComRelacionamentos(IQueryable<Venda> consulta) =>
