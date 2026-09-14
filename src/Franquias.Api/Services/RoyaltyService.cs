@@ -1,3 +1,4 @@
+using Franquias.Api.Common.Consultas;
 using Franquias.Api.Common.Excecoes;
 using Franquias.Api.DTOs.Royalties;
 using Franquias.Api.Entities;
@@ -14,11 +15,34 @@ public sealed class RoyaltyService(
     IVendaRepositorio vendas) : IRoyaltyService
 {
     /// <inheritdoc />
+    public async Task<PagedResult<RoyaltyResponse>> ListarAsync(
+        QueryParams parametros,
+        FiltroRoyaltiesRequest filtro,
+        CancellationToken cancellationToken = default)
+    {
+        // Sem esta atualização, o filtro por situação deixaria de fora cobranças que já
+        // venceram mas ainda estão gravadas como pendentes.
+        await AtualizarAtrasosAsync(DateOnly.FromDateTime(DateTime.UtcNow), cancellationToken);
+
+        var pagina = await royalties.ListarAsync(parametros, filtro, cancellationToken);
+
+        return pagina.Converter(RoyaltyResponse.De);
+    }
+
+    /// <inheritdoc />
     public async Task<RoyaltyResponse> ObterPorIdAsync(
         int id,
         CancellationToken cancellationToken = default)
     {
         var royalty = await BuscarOuFalharAsync(id, cancellationToken);
+        var situacaoAnterior = royalty.Situacao;
+
+        royalty.AvaliarAtraso(DateOnly.FromDateTime(DateTime.UtcNow));
+
+        if (royalty.Situacao != situacaoAnterior)
+        {
+            await royalties.SalvarAlteracoesAsync(cancellationToken);
+        }
 
         return RoyaltyResponse.De(royalty);
     }

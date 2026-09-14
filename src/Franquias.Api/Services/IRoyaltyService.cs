@@ -1,3 +1,4 @@
+using Franquias.Api.Common.Consultas;
 using Franquias.Api.DTOs.Royalties;
 
 namespace Franquias.Api.Services;
@@ -7,7 +8,19 @@ namespace Franquias.Api.Services;
 /// </summary>
 public interface IRoyaltyService
 {
-    /// <summary>Busca uma cobrança de royalty pelo identificador.</summary>
+    /// <summary>
+    /// Lista as cobranças de royalty de forma paginada, com filtros por unidade e situação.
+    /// As cobranças vencidas são marcadas como atrasadas antes da consulta.
+    /// </summary>
+    Task<PagedResult<RoyaltyResponse>> ListarAsync(
+        QueryParams parametros,
+        FiltroRoyaltiesRequest filtro,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Busca uma cobrança de royalty pelo identificador, já refletindo o atraso caso tenha
+    /// vencido sem pagamento.
+    /// </summary>
     Task<RoyaltyResponse> ObterPorIdAsync(int id, CancellationToken cancellationToken = default);
 
     /// <summary>
