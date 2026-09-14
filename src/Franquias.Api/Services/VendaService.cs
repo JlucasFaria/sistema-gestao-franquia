@@ -1,7 +1,9 @@
 using Franquias.Api.Common.Consultas;
 using Franquias.Api.Common.Excecoes;
+using Franquias.Api.Data;
 using Franquias.Api.DTOs.Vendas;
 using Franquias.Api.Entities;
+using Franquias.Api.Entities.Enums;
 using Franquias.Api.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,7 +15,9 @@ namespace Franquias.Api.Services;
 public sealed class VendaService(
     IVendaRepositorio vendas,
     IUnidadeRepositorio unidades,
-    IProdutoServicoRepositorio produtos) : IVendaService
+    IProdutoServicoRepositorio produtos,
+    IEstoqueRepositorio estoques,
+    IUnidadeDeTrabalho unidadeDeTrabalho) : IVendaService
 {
     /// <inheritdoc />
     public async Task<PagedResult<VendaResponse>> ListarAsync(
@@ -71,6 +75,35 @@ public sealed class VendaService(
         return VendaResponse.De(await BuscarOuFalharAsync(venda.Id, cancellationToken));
     }
 
+    /// <inheritdoc />
+    public async Task<VendaResponse> ConfirmarAsync(
+        int id,
+        CancellationToken cancellationToken = default)
+    {
+        await unidadeDeTrabalho.ExecutarEmTransacaoAsync(
+            async token =>
+            {
+                var venda = await BuscarOuFalharAsync(id, token);
+
+                if (venda.Status != StatusVenda.Pendente)
+                {
+                    throw new RegraDeNegocioException(
+                        $"A venda {venda.Id} está com status {venda.Status} e não pode ser confirmada.");
+                }
+
+                // A unidade pode ter sido suspensa ou inativada entre o registro e a confirmação.
+                ExigirUnidadeAptaAVender(venda.UnidadeFranqueada);
+
+                await BaixarEstoqueAsync(venda, token);
+
+                venda.Confirmar();
+                await vendas.SalvarAlteracoesAsync(token);
+            },
+            cancellationToken);
+
+        return VendaResponse.De(await BuscarOuFalharAsync(id, cancellationToken));
+    }
+
     /// <summary>
     /// Impede venda em unidade que não pode operar. A condição é a mesma de
     /// <see cref="UnidadeFranqueada.PodeOperar"/>: cadastro ativo e situação Ativa ao mesmo
@@ -91,6 +124,56 @@ public sealed class VendaService(
         throw new RegraDeNegocioException(
             $"A unidade '{unidade.NomeFantasia}' não pode registrar vendas porque {motivo}. "
             + "Só vendem unidades com situação Ativa e cadastro ativo.");
+    }
+
+    /// <summary>
+    /// Baixa o estoque dos itens físicos da venda em duas passadas: primeiro confere o saldo
+    /// de todos, depois baixa. Conferir tudo antes de mexer em qualquer saldo permite recusar
+    /// a confirmação apontando de uma vez todos os itens em falta, em vez de parar no primeiro.
+    /// </summary>
+    private async Task BaixarEstoqueAsync(Venda venda, CancellationToken cancellationToken)
+    {
+        // Linhas do mesmo item com preços diferentes baixam juntas: o estoque não distingue
+        // o preço pelo qual cada unidade foi vendida.
+        var baixas = venda.Itens
+            .Where(item => item.ProdutoServico.ControlaEstoque())
+            .GroupBy(item => item.ProdutoServicoId)
+            .Select(grupo => (
+                ProdutoServicoId: grupo.Key,
+                Nome: grupo.First().ProdutoServico.Nome,
+                Quantidade: grupo.Sum(item => item.Quantidade)))
+            .ToList();
+
+        var saldos = new Dictionary<int, Estoque>();
+        var faltas = new List<string>();
+
+        foreach (var baixa in baixas)
+        {
+            var estoque = await estoques.ObterPorUnidadeEProdutoAsync(
+                venda.UnidadeFranqueadaId,
+                baixa.ProdutoServicoId,
+                cancellationToken);
+
+            if (estoque is null || !estoque.PossuiSaldoPara(baixa.Quantidade))
+            {
+                faltas.Add(
+                    $"'{baixa.Nome}' (disponível {estoque?.Quantidade ?? 0}, necessário {baixa.Quantidade})");
+                continue;
+            }
+
+            saldos[baixa.ProdutoServicoId] = estoque;
+        }
+
+        if (faltas.Count > 0)
+        {
+            throw new RegraDeNegocioException(
+                $"Estoque insuficiente para confirmar a venda {venda.Id}: {string.Join("; ", faltas)}.");
+        }
+
+        foreach (var baixa in baixas)
+        {
+            saldos[baixa.ProdutoServicoId].RegistrarSaida(baixa.Quantidade, $"Venda {venda.Id}");
+        }
     }
 
     /// <summary>

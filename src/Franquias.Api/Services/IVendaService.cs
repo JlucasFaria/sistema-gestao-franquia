@@ -31,4 +31,11 @@ public interface IVendaService
     Task<VendaResponse> RegistrarAsync(
         CriarVendaRequest requisicao,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Confirma uma venda pendente e baixa o estoque dos itens físicos, tudo em uma única
+    /// transação. Se faltar saldo de qualquer item, nenhum estoque é baixado e a venda
+    /// continua pendente.
+    /// </summary>
+    Task<VendaResponse> ConfirmarAsync(int id, CancellationToken cancellationToken = default);
 }
