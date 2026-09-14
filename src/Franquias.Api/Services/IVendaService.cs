@@ -23,6 +23,11 @@ public interface IVendaService
     /// Registra uma venda com pelo menos um item, vinculada à unidade informada. A venda
     /// nasce pendente: o estoque só é baixado na confirmação.
     /// </summary>
+    /// <remarks>
+    /// Cada item usa o preço praticado quando informado e o preço de tabela quando omitido.
+    /// Itens repetidos com o mesmo preço são consolidados em uma única linha. O valor total é
+    /// sempre calculado a partir dos itens, nunca recebido.
+    /// </remarks>
     Task<VendaResponse> RegistrarAsync(
         CriarVendaRequest requisicao,
         CancellationToken cancellationToken = default);

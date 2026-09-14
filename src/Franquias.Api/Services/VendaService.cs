@@ -56,10 +56,11 @@ public sealed class VendaService(
 
         var venda = new Venda(unidade.Id);
 
-        foreach (var item in requisicao.Itens)
+        // O total nunca vem da requisição: cada linha entra pela entidade, que recalcula
+        // subtotais e total a cada item adicionado.
+        foreach (var linha in ConsolidarItens(requisicao.Itens, catalogo))
         {
-            var produto = catalogo[item.ProdutoServicoId];
-            venda.AdicionarItem(produto.Id, item.Quantidade, produto.PrecoBase);
+            venda.AdicionarItem(linha.ProdutoServicoId, linha.Quantidade, linha.PrecoUnitario);
         }
 
         await vendas.AdicionarAsync(venda, cancellationToken);
@@ -67,6 +68,29 @@ public sealed class VendaService(
 
         return VendaResponse.De(await BuscarOuFalharAsync(venda.Id, cancellationToken));
     }
+
+    /// <summary>
+    /// Resolve o preço de cada item e junta as linhas repetidas. O preço é o praticado pela
+    /// unidade quando informado e o de tabela quando omitido. Linhas do mesmo item com o
+    /// mesmo preço viram uma só, com as quantidades somadas. Com preços diferentes elas
+    /// continuam separadas: juntá-las obrigaria a escolher um dos preços e distorceria o total.
+    /// </summary>
+    private static IEnumerable<LinhaDeVenda> ConsolidarItens(
+        IReadOnlyCollection<ItemVendaRequest> itens,
+        IReadOnlyDictionary<int, ProdutoServico> catalogo) =>
+        itens
+            .Select(item => new LinhaDeVenda(
+                item.ProdutoServicoId,
+                item.Quantidade,
+                item.PrecoUnitario ?? catalogo[item.ProdutoServicoId].PrecoBase))
+            .GroupBy(linha => (linha.ProdutoServicoId, linha.PrecoUnitario))
+            .Select(grupo => new LinhaDeVenda(
+                grupo.Key.ProdutoServicoId,
+                grupo.Sum(linha => linha.Quantidade),
+                grupo.Key.PrecoUnitario));
+
+    /// <summary>Linha já resolvida: item, quantidade total e preço efetivo.</summary>
+    private sealed record LinhaDeVenda(int ProdutoServicoId, int Quantidade, decimal PrecoUnitario);
 
     /// <summary>
     /// Carrega de uma vez todos os itens do catálogo citados na venda e confere que cada um
