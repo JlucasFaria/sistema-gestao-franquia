@@ -88,4 +88,28 @@ public class ChamadoRepositorio(AppDbContext contexto)
             .Include(chamado => chamado.UsuarioAbertura)
             .Include(chamado => chamado.Interacoes)
                 .ThenInclude(interacao => interacao.Usuario);
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// A ordem reproduz a fila de atendimento do suporte: primeiro o que trava a operação da
+    /// unidade, e entre iguais o que espera há mais tempo. Uma ordenação pedida na consulta
+    /// tem preferência sobre essa.
+    /// </remarks>
+    public async Task<PagedResult<ChamadoSuporte>> ListarEmAbertoAsync(
+        QueryParams parametros,
+        FiltroChamadosRequest filtro,
+        CancellationToken cancellationToken = default)
+    {
+        var consulta = Filtrar(ComRelacionamentos(Conjunto.AsNoTracking()), filtro)
+            .Where(chamado => chamado.Status != StatusChamado.Encerrado);
+
+        var ordenada = string.IsNullOrWhiteSpace(parametros.OrdenarPor)
+            ? consulta
+                .OrderByDescending(chamado => chamado.Prioridade)
+                .ThenBy(chamado => chamado.DataCriacao)
+                .ThenBy(chamado => chamado.Id)
+            : consulta.Ordenar(parametros);
+
+        return await ordenada.PaginarAsync(parametros, cancellationToken);
+    }
 }

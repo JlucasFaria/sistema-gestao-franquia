@@ -169,4 +169,15 @@ public sealed class ChamadoService(
     private async Task<ChamadoSuporte> BuscarOuFalharAsync(int id, CancellationToken cancellationToken) =>
         await chamados.ObterPorIdAsync(id, cancellationToken)
             ?? throw new NaoEncontradoException("Chamado de suporte", id);
+
+    /// <inheritdoc />
+    public async Task<PagedResult<ChamadoResponse>> ListarEmAbertoAsync(
+        QueryParams parametros,
+        FiltroChamadosRequest filtro,
+        CancellationToken cancellationToken = default)
+    {
+        var pagina = await chamados.ListarEmAbertoAsync(parametros, filtro, cancellationToken);
+
+        return pagina.Converter(ChamadoResponse.De);
+    }
 }

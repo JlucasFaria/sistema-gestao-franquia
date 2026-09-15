@@ -65,4 +65,14 @@ public interface IChamadoService
         AlterarStatusChamadoRequest requisicao,
         int usuarioId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lista os chamados ainda não encerrados, dos mais urgentes para os menos urgentes e,
+    /// dentro da mesma urgência, do mais antigo para o mais recente. Aceita os mesmos filtros
+    /// da consulta geral, como unidade e prioridade.
+    /// </summary>
+    Task<PagedResult<ChamadoResponse>> ListarEmAbertoAsync(
+        QueryParams parametros,
+        FiltroChamadosRequest filtro,
+        CancellationToken cancellationToken = default);
 }

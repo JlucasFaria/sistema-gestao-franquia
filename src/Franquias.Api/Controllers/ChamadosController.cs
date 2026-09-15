@@ -165,4 +165,26 @@ public class ChamadosController(IChamadoService chamados) : ControllerBase
 
         return Ok(chamado);
     }
+
+    /// <summary>
+    /// Lista os chamados ainda não encerrados, na ordem de atendimento: os mais urgentes
+    /// primeiro e, entre os de mesma urgência, os que esperam há mais tempo. Aceita filtro
+    /// por unidade, prioridade e categoria.
+    /// </summary>
+    /// <param name="parametros">Página, tamanho e ordenação.</param>
+    /// <param name="filtro">Filtros por unidade, categoria e prioridade.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
+    /// <response code="200">Página de chamados em aberto.</response>
+    [HttpGet("em-aberto")]
+    [Authorize(Policy = PoliticasDeAcesso.Operador)]
+    [ProducesResponseType(typeof(PagedResult<ChamadoResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<ChamadoResponse>>> ListarEmAberto(
+        [FromQuery] QueryParams parametros,
+        [FromQuery] FiltroChamadosRequest filtro,
+        CancellationToken cancellationToken)
+    {
+        var pagina = await chamados.ListarEmAbertoAsync(parametros, filtro, cancellationToken);
+
+        return Ok(pagina);
+    }
 }

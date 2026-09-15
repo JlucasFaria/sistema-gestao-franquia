@@ -17,4 +17,13 @@ public interface IChamadoRepositorio : IRepositorio<ChamadoSuporte>
         QueryParams parametros,
         FiltroChamadosRequest filtro,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lista os chamados ainda não encerrados, dos mais urgentes para os menos urgentes e,
+    /// dentro da mesma urgência, do mais antigo para o mais recente.
+    /// </summary>
+    Task<PagedResult<ChamadoSuporte>> ListarEmAbertoAsync(
+        QueryParams parametros,
+        FiltroChamadosRequest filtro,
+        CancellationToken cancellationToken = default);
 }
