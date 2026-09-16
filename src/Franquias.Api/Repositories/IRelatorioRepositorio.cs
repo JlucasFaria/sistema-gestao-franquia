@@ -33,4 +33,14 @@ public interface IRelatorioRepositorio
         DateOnly? dataInicial,
         DateOnly? dataFinal,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lista os itens de estoque que caíram abaixo da quantidade mínima, dos que faltam mais
+    /// para os que faltam menos.
+    /// </summary>
+    /// <param name="unidadeFranqueadaId">Restringe a uma unidade; nulo considera a rede toda.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
+    Task<IReadOnlyList<EstoqueCriticoResponse>> EstoqueCriticoAsync(
+        int? unidadeFranqueadaId,
+        CancellationToken cancellationToken = default);
 }

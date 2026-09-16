@@ -44,4 +44,14 @@ public interface IRelatorioService
         FiltroPeriodoRequest filtro,
         int? limite = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Itens de estoque abaixo da quantidade mínima, dos que faltam mais para os que faltam
+    /// menos.
+    /// </summary>
+    /// <param name="unidadeFranqueadaId">Restringe a uma unidade; nulo considera a rede toda.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
+    Task<IReadOnlyList<EstoqueCriticoResponse>> EstoqueCriticoAsync(
+        int? unidadeFranqueadaId = null,
+        CancellationToken cancellationToken = default);
 }

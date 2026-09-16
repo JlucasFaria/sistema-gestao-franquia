@@ -125,4 +125,10 @@ public sealed class RelatorioService(
 
         return [.. ordenados];
     }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<EstoqueCriticoResponse>> EstoqueCriticoAsync(
+        int? unidadeFranqueadaId = null,
+        CancellationToken cancellationToken = default) =>
+        await relatorios.EstoqueCriticoAsync(unidadeFranqueadaId, cancellationToken);
 }

@@ -122,4 +122,39 @@ public class RelatorioRepositorio(AppDbContext contexto) : IRelatorioRepositorio
             grupo.Quantidade,
             grupo.Total))];
     }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// O critério é o mesmo de <see cref="Estoque.EstaAbaixoDoMinimo"/>, reescrito aqui em
+    /// forma de consulta porque o EF não traduz o método da entidade. Itens com mínimo zero
+    /// nunca entram, já que o saldo não fica negativo.
+    /// </remarks>
+    public async Task<IReadOnlyList<EstoqueCriticoResponse>> EstoqueCriticoAsync(
+        int? unidadeFranqueadaId,
+        CancellationToken cancellationToken = default)
+    {
+        var consulta = contexto.Estoques
+            .AsNoTracking()
+            .Where(estoque => estoque.Quantidade < estoque.QuantidadeMinima);
+
+        if (unidadeFranqueadaId is not null)
+        {
+            consulta = consulta.Where(estoque => estoque.UnidadeFranqueadaId == unidadeFranqueadaId);
+        }
+
+        return await consulta
+            .OrderByDescending(estoque => estoque.QuantidadeMinima - estoque.Quantidade)
+            .ThenBy(estoque => estoque.UnidadeFranqueada.NomeFantasia)
+            .ThenBy(estoque => estoque.ProdutoServico.Nome)
+            .Select(estoque => new EstoqueCriticoResponse(
+                estoque.UnidadeFranqueadaId,
+                estoque.UnidadeFranqueada.NomeFantasia,
+                estoque.ProdutoServicoId,
+                estoque.ProdutoServico.Nome,
+                estoque.ProdutoServico.Categoria.Nome,
+                estoque.Quantidade,
+                estoque.QuantidadeMinima,
+                estoque.QuantidadeMinima - estoque.Quantidade))
+            .ToListAsync(cancellationToken);
+    }
 }
