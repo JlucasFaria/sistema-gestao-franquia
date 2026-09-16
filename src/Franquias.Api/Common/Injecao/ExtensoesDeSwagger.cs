@@ -73,20 +73,9 @@ public static class ExtensoesDeSwagger
                 + "O prefixo 'Bearer ' é acrescentado automaticamente."
         });
 
-        opcoes.AddSecurityRequirement(new OpenApiSecurityRequirement
-        {
-            {
-                new OpenApiSecurityScheme
-                {
-                    Reference = new OpenApiReference
-                    {
-                        Type = ReferenceType.SecurityScheme,
-                        Id = EsquemaBearer
-                    }
-                },
-                Array.Empty<string>()
-            }
-        });
+        // O token é exigido por endpoint, e não para a API inteira: assim o login aparece
+        // sem cadeado na interface do Swagger.
+        opcoes.OperationFilter<RespostasDeAutorizacaoFiltro>(EsquemaBearer);
     }
 
     private static void IncluirComentariosXml(Swashbuckle.AspNetCore.SwaggerGen.SwaggerGenOptions opcoes)
