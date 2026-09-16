@@ -33,4 +33,15 @@ public interface IRelatorioService
     Task<RelatorioRoyaltiesResponse> RoyaltiesGeradosAsync(
         FiltroPeriodoRequest filtro,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Produtos e serviços mais vendidos no período, da maior para a menor quantidade.
+    /// </summary>
+    /// <param name="filtro">Intervalo de datas considerado.</param>
+    /// <param name="limite">Quantas colocações devolver; nulo devolve todos os itens vendidos.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
+    Task<IReadOnlyList<ProdutoMaisVendidoResponse>> ProdutosMaisVendidosAsync(
+        FiltroPeriodoRequest filtro,
+        int? limite = null,
+        CancellationToken cancellationToken = default);
 }

@@ -80,4 +80,46 @@ public class RelatorioRepositorio(AppDbContext contexto) : IRelatorioRepositorio
 
         return consulta;
     }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// A posição sai como zero daqui: só depois de ordenar é que se sabe quem é o primeiro.
+    /// </remarks>
+    public async Task<IReadOnlyList<ProdutoMaisVendidoResponse>> ProdutosMaisVendidosAsync(
+        DateOnly? dataInicial,
+        DateOnly? dataFinal,
+        CancellationToken cancellationToken = default)
+    {
+        var vendas = VendasConfirmadas(dataInicial, dataFinal);
+
+        var grupos = await contexto.ItensVenda
+            .AsNoTracking()
+            .Where(item => vendas.Any(venda => venda.Id == item.VendaId))
+            .GroupBy(item => new
+            {
+                item.ProdutoServicoId,
+                item.ProdutoServico.Nome,
+                Categoria = item.ProdutoServico.Categoria.Nome,
+                item.ProdutoServico.EhServico
+            })
+            .Select(grupo => new
+            {
+                grupo.Key.ProdutoServicoId,
+                grupo.Key.Nome,
+                grupo.Key.Categoria,
+                grupo.Key.EhServico,
+                Quantidade = grupo.Sum(item => item.Quantidade),
+                Total = grupo.Sum(item => item.Subtotal)
+            })
+            .ToListAsync(cancellationToken);
+
+        return [.. grupos.Select(grupo => new ProdutoMaisVendidoResponse(
+            0,
+            grupo.ProdutoServicoId,
+            grupo.Nome,
+            grupo.Categoria,
+            grupo.EhServico,
+            grupo.Quantidade,
+            grupo.Total))];
+    }
 }

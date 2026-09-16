@@ -98,4 +98,31 @@ public sealed class RelatorioService(
             unidades.Sum(unidade => unidade.TotalEmAtraso),
             unidades);
     }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<ProdutoMaisVendidoResponse>> ProdutosMaisVendidosAsync(
+        FiltroPeriodoRequest filtro,
+        int? limite = null,
+        CancellationToken cancellationToken = default)
+    {
+        var itens = await relatorios.ProdutosMaisVendidosAsync(
+            filtro.DataInicial,
+            filtro.DataFinal,
+            cancellationToken);
+
+        // Mais vendido é o que saiu em maior quantidade. A receita desempata, porque entre
+        // dois itens com a mesma saída o que rendeu mais pesa mais para a rede.
+        var ordenados = itens
+            .OrderByDescending(item => item.QuantidadeVendida)
+            .ThenByDescending(item => item.ValorTotal)
+            .ThenBy(item => item.Produto)
+            .Select((item, indice) => item with { Posicao = indice + 1 });
+
+        if (limite is not null)
+        {
+            ordenados = ordenados.Take(limite.Value);
+        }
+
+        return [.. ordenados];
+    }
 }
