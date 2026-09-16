@@ -43,4 +43,18 @@ public interface IRelatorioRepositorio
     Task<IReadOnlyList<EstoqueCriticoResponse>> EstoqueCriticoAsync(
         int? unidadeFranqueadaId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Conta, no banco, os chamados de cada estágio de atendimento abertos no período.
+    /// Estágios sem chamado não aparecem no resultado.
+    /// </summary>
+    /// <param name="dataInicial">Primeiro dia de abertura considerado; nulo não limita o início.</param>
+    /// <param name="dataFinal">Último dia de abertura considerado; nulo não limita o fim.</param>
+    /// <param name="unidadeFranqueadaId">Restringe a uma unidade; nulo considera a rede toda.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
+    Task<IReadOnlyList<ContagemPorStatusResponse>> ChamadosPorStatusAsync(
+        DateOnly? dataInicial,
+        DateOnly? dataFinal,
+        int? unidadeFranqueadaId,
+        CancellationToken cancellationToken = default);
 }

@@ -1,5 +1,6 @@
 using Franquias.Api.DTOs.Relatorios;
 using Franquias.Api.DTOs.Royalties;
+using Franquias.Api.Entities.Enums;
 using Franquias.Api.Repositories;
 
 namespace Franquias.Api.Services;
@@ -131,4 +132,34 @@ public sealed class RelatorioService(
         int? unidadeFranqueadaId = null,
         CancellationToken cancellationToken = default) =>
         await relatorios.EstoqueCriticoAsync(unidadeFranqueadaId, cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<RelatorioChamadosResponse> ChamadosPorStatusAsync(
+        FiltroPeriodoRequest filtro,
+        int? unidadeFranqueadaId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var contagens = await relatorios.ChamadosPorStatusAsync(
+            filtro.DataInicial,
+            filtro.DataFinal,
+            unidadeFranqueadaId,
+            cancellationToken);
+
+        // Os estágios sem chamado entram zerados: o painel mantém sempre as mesmas linhas,
+        // em vez de mudar de formato conforme o movimento do dia.
+        var porStatus = Enum.GetValues<StatusChamado>()
+            .Select(status => new ContagemPorStatusResponse(
+                status,
+                contagens.FirstOrDefault(contagem => contagem.Status == status)?.Quantidade ?? 0))
+            .ToList();
+
+        return new RelatorioChamadosResponse(
+            filtro.DataInicial,
+            filtro.DataFinal,
+            porStatus.Sum(contagem => contagem.Quantidade),
+            porStatus
+                .Where(contagem => contagem.Status != StatusChamado.Encerrado)
+                .Sum(contagem => contagem.Quantidade),
+            porStatus);
+    }
 }

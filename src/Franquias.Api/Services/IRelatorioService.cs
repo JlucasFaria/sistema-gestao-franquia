@@ -54,4 +54,15 @@ public interface IRelatorioService
     Task<IReadOnlyList<EstoqueCriticoResponse>> EstoqueCriticoAsync(
         int? unidadeFranqueadaId = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Quantidade de chamados em cada estágio de atendimento, entre os abertos no período.
+    /// </summary>
+    /// <param name="filtro">Intervalo de datas de abertura considerado.</param>
+    /// <param name="unidadeFranqueadaId">Restringe a uma unidade; nulo considera a rede toda.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
+    Task<RelatorioChamadosResponse> ChamadosPorStatusAsync(
+        FiltroPeriodoRequest filtro,
+        int? unidadeFranqueadaId = null,
+        CancellationToken cancellationToken = default);
 }

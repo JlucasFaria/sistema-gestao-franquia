@@ -157,4 +157,41 @@ public class RelatorioRepositorio(AppDbContext contexto) : IRelatorioRepositorio
                 estoque.QuantidadeMinima - estoque.Quantidade))
             .ToListAsync(cancellationToken);
     }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// O corte é pela data de abertura do chamado, que é a data de criação do registro.
+    /// </remarks>
+    public async Task<IReadOnlyList<ContagemPorStatusResponse>> ChamadosPorStatusAsync(
+        DateOnly? dataInicial,
+        DateOnly? dataFinal,
+        int? unidadeFranqueadaId,
+        CancellationToken cancellationToken = default)
+    {
+        var consulta = contexto.Chamados.AsNoTracking();
+
+        if (unidadeFranqueadaId is not null)
+        {
+            consulta = consulta.Where(chamado => chamado.UnidadeFranqueadaId == unidadeFranqueadaId);
+        }
+
+        if (dataInicial is not null)
+        {
+            var inicio = dataInicial.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+            consulta = consulta.Where(chamado => chamado.DataCriacao >= inicio);
+        }
+
+        if (dataFinal is not null)
+        {
+            var fimExclusivo = dataFinal.Value.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+            consulta = consulta.Where(chamado => chamado.DataCriacao < fimExclusivo);
+        }
+
+        return await consulta
+            .GroupBy(chamado => chamado.Status)
+            .Select(grupo => new ContagemPorStatusResponse(grupo.Key, grupo.Count()))
+            .ToListAsync(cancellationToken);
+    }
 }
