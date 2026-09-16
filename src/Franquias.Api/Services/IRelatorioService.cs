@@ -13,4 +13,16 @@ public interface IRelatorioService
     Task<RelatorioFaturamentoResponse> FaturamentoPorUnidadeAsync(
         FiltroPeriodoRequest filtro,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Ranking das unidades por faturamento confirmado no período, com a participação de
+    /// cada uma no total da rede.
+    /// </summary>
+    /// <param name="filtro">Intervalo de datas considerado.</param>
+    /// <param name="limite">Quantas colocações devolver; nulo devolve todas as unidades.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
+    Task<IReadOnlyList<RankingUnidadeResponse>> RankingPorFaturamentoAsync(
+        FiltroPeriodoRequest filtro,
+        int? limite = null,
+        CancellationToken cancellationToken = default);
 }

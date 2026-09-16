@@ -35,4 +35,38 @@ public sealed class RelatorioService(IRelatorioRepositorio relatorios) : IRelato
             quantidade == 0 ? decimal.Zero : Math.Round(total / quantidade, 2, MidpointRounding.AwayFromZero),
             ordenadas);
     }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<RankingUnidadeResponse>> RankingPorFaturamentoAsync(
+        FiltroPeriodoRequest filtro,
+        int? limite = null,
+        CancellationToken cancellationToken = default)
+    {
+        var faturamento = await FaturamentoPorUnidadeAsync(filtro, cancellationToken);
+
+        var ranking = faturamento.Unidades
+            .Select((unidade, indice) => new RankingUnidadeResponse(
+                indice + 1,
+                unidade.UnidadeFranqueadaId,
+                unidade.Unidade,
+                unidade.QuantidadeDeVendas,
+                unidade.ValorTotal,
+                CalcularParticipacao(unidade.ValorTotal, faturamento.TotalGeral)));
+
+        if (limite is not null)
+        {
+            ranking = ranking.Take(limite.Value);
+        }
+
+        return [.. ranking];
+    }
+
+    /// <summary>
+    /// Participação da unidade no faturamento da rede, em pontos percentuais com duas casas.
+    /// Rede sem faturamento no período resulta em zero, e não em divisão por zero.
+    /// </summary>
+    private static decimal CalcularParticipacao(decimal valor, decimal total) =>
+        total == decimal.Zero
+            ? decimal.Zero
+            : Math.Round(valor * 100m / total, 2, MidpointRounding.AwayFromZero);
 }
