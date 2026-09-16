@@ -1,4 +1,5 @@
 using Franquias.Api.DTOs.Relatorios;
+using Franquias.Api.DTOs.Royalties;
 using Franquias.Api.Repositories;
 
 namespace Franquias.Api.Services;
@@ -6,7 +7,9 @@ namespace Franquias.Api.Services;
 /// <summary>
 /// Implementação de <see cref="IRelatorioService"/>.
 /// </summary>
-public sealed class RelatorioService(IRelatorioRepositorio relatorios) : IRelatorioService
+public sealed class RelatorioService(
+    IRelatorioRepositorio relatorios,
+    IRoyaltyService royalties) : IRelatorioService
 {
     /// <inheritdoc />
     public async Task<RelatorioFaturamentoResponse> FaturamentoPorUnidadeAsync(
@@ -69,4 +72,30 @@ public sealed class RelatorioService(IRelatorioRepositorio relatorios) : IRelato
         total == decimal.Zero
             ? decimal.Zero
             : Math.Round(valor * 100m / total, 2, MidpointRounding.AwayFromZero);
+
+    /// <inheritdoc />
+    public async Task<RelatorioRoyaltiesResponse> RoyaltiesGeradosAsync(
+        FiltroPeriodoRequest filtro,
+        CancellationToken cancellationToken = default)
+    {
+        // O resumo do serviço de royalties já marca como atrasadas as cobranças vencidas,
+        // então o total em atraso do relatório reflete a situação de hoje.
+        var recorte = new FiltroResumoRoyaltiesRequest
+        {
+            CompetenciaInicio = filtro.DataInicial,
+            CompetenciaFim = filtro.DataFinal
+        };
+
+        var unidades = await royalties.ResumirPorUnidadeAsync(recorte, cancellationToken);
+
+        return new RelatorioRoyaltiesResponse(
+            filtro.DataInicial,
+            filtro.DataFinal,
+            unidades.Sum(unidade => unidade.QuantidadeDeCobrancas),
+            unidades.Sum(unidade => unidade.TotalDevido),
+            unidades.Sum(unidade => unidade.TotalPago),
+            unidades.Sum(unidade => unidade.TotalEmAberto),
+            unidades.Sum(unidade => unidade.TotalEmAtraso),
+            unidades);
+    }
 }

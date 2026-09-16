@@ -25,4 +25,12 @@ public interface IRelatorioService
         FiltroPeriodoRequest filtro,
         int? limite = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Royalties gerados no período, com o total da rede e a abertura por unidade. Uma
+    /// cobrança entra no relatório quando todo o seu período de apuração cabe no intervalo.
+    /// </summary>
+    Task<RelatorioRoyaltiesResponse> RoyaltiesGeradosAsync(
+        FiltroPeriodoRequest filtro,
+        CancellationToken cancellationToken = default);
 }
