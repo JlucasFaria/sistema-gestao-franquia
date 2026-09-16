@@ -1,0 +1,83 @@
+using Franquias.Api.Data;
+using Franquias.Api.DTOs.Relatorios;
+using Franquias.Api.Entities;
+using Franquias.Api.Entities.Enums;
+using Microsoft.EntityFrameworkCore;
+
+namespace Franquias.Api.Repositories;
+
+/// <summary>
+/// Implementação de <see cref="IRelatorioRepositorio"/>.
+/// </summary>
+public class RelatorioRepositorio(AppDbContext contexto) : IRelatorioRepositorio
+{
+    /// <inheritdoc />
+    /// <remarks>
+    /// A soma é feita pelo banco, que trata valores decimais sem perda de precisão. O ticket
+    /// médio é calculado aqui, depois de materializar os grupos, porque é uma divisão entre
+    /// decimais que o SQLite não faz.
+    /// </remarks>
+    public async Task<IReadOnlyList<FaturamentoUnidadeResponse>> FaturamentoPorUnidadeAsync(
+        DateOnly? dataInicial,
+        DateOnly? dataFinal,
+        CancellationToken cancellationToken = default)
+    {
+        var grupos = await VendasConfirmadas(dataInicial, dataFinal)
+            .GroupBy(venda => new { venda.UnidadeFranqueadaId, venda.UnidadeFranqueada.NomeFantasia })
+            .Select(grupo => new
+            {
+                grupo.Key.UnidadeFranqueadaId,
+                grupo.Key.NomeFantasia,
+                Quantidade = grupo.Count(),
+                Total = grupo.Sum(venda => venda.ValorTotal)
+            })
+            .ToListAsync(cancellationToken);
+
+        return [.. grupos.Select(grupo => new FaturamentoUnidadeResponse(
+            grupo.UnidadeFranqueadaId,
+            grupo.NomeFantasia,
+            grupo.Quantidade,
+            grupo.Total,
+            CalcularTicketMedio(grupo.Total, grupo.Quantidade)))];
+    }
+
+    /// <summary>
+    /// Valor médio por venda, arredondado a dois centavos. Sem venda no período, o ticket
+    /// médio é zero em vez de uma divisão por zero.
+    /// </summary>
+    protected static decimal CalcularTicketMedio(decimal total, int quantidade) =>
+        quantidade == 0
+            ? decimal.Zero
+            : Math.Round(total / quantidade, 2, MidpointRounding.AwayFromZero);
+
+    /// <summary>
+    /// Base de todos os relatórios de faturamento: apenas vendas confirmadas, no intervalo
+    /// pedido. A venda pendente ainda pode não se concretizar e a cancelada não é receita.
+    /// </summary>
+    /// <remarks>
+    /// A data final é inclusiva: o limite é o primeiro instante do dia seguinte, com
+    /// comparação estrita, para não deixar de fora as vendas do último dia.
+    /// </remarks>
+    protected IQueryable<Venda> VendasConfirmadas(DateOnly? dataInicial, DateOnly? dataFinal)
+    {
+        var consulta = contexto.Vendas
+            .AsNoTracking()
+            .Where(venda => venda.Status == StatusVenda.Confirmada);
+
+        if (dataInicial is not null)
+        {
+            var inicio = dataInicial.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+            consulta = consulta.Where(venda => venda.DataVenda >= inicio);
+        }
+
+        if (dataFinal is not null)
+        {
+            var fimExclusivo = dataFinal.Value.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+            consulta = consulta.Where(venda => venda.DataVenda < fimExclusivo);
+        }
+
+        return consulta;
+    }
+}
