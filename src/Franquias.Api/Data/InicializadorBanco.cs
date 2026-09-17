@@ -1,3 +1,4 @@
+using Franquias.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Franquias.Api.Data;
@@ -10,7 +11,9 @@ public static class InicializadorBanco
     /// <summary>
     /// Aplica as migrations pendentes, criando o banco e a carga inicial caso ainda não
     /// existam. Deixa a aplicação utilizável logo após o clone do repositório, sem exigir
-    /// que se rode o <c>dotnet ef database update</c> à mão.
+    /// que se rode o <c>dotnet ef database update</c> à mão. Com a opção
+    /// <c>DadosDeExemplo:Carregar</c> ligada, um banco recém-criado recebe também os dados
+    /// de demonstração.
     /// </summary>
     public static async Task PrepararBancoAsync(this WebApplication app)
     {
@@ -25,16 +28,33 @@ public static class InicializadorBanco
         if (pendentes.Count == 0)
         {
             logger.LogInformation("Banco de dados já está atualizado; nenhuma migration pendente.");
+        }
+        else
+        {
+            logger.LogInformation(
+                "Aplicando {Quantidade} migration(s) pendente(s): {Migrations}.",
+                pendentes.Count,
+                string.Join(", ", pendentes));
+
+            await contexto.Database.MigrateAsync();
+
+            logger.LogInformation("Banco de dados atualizado com sucesso.");
+        }
+
+        if (!app.Configuration.GetValue<bool>("DadosDeExemplo:Carregar"))
+        {
             return;
         }
 
-        logger.LogInformation(
-            "Aplicando {Quantidade} migration(s) pendente(s): {Migrations}.",
-            pendentes.Count,
-            string.Join(", ", pendentes));
+        var hashDeSenha = escopo.ServiceProvider.GetRequiredService<IHashDeSenhaService>();
 
-        await contexto.Database.MigrateAsync();
-
-        logger.LogInformation("Banco de dados atualizado com sucesso.");
+        if (await DadosDeExemplo.CarregarAsync(contexto, hashDeSenha))
+        {
+            logger.LogInformation("Dados de exemplo carregados.");
+        }
+        else
+        {
+            logger.LogInformation("O banco já possui unidades cadastradas; os dados de exemplo não foram carregados.");
+        }
     }
 }
