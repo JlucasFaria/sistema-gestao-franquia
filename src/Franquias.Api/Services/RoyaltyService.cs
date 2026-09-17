@@ -173,7 +173,9 @@ public sealed class RoyaltyService(
 
         var resumos = await royalties.ResumirPorUnidadeAsync(unidade.Id, filtro, cancellationToken);
 
-        return resumos.FirstOrDefault() ?? ResumoRoyaltiesUnidadeResponse.Vazio(unidade.Id, unidade.NomeFantasia);
+        return resumos.Count > 0
+            ? resumos[0]
+            : ResumoRoyaltiesUnidadeResponse.Vazio(unidade.Id, unidade.NomeFantasia);
     }
 
     /// <inheritdoc />

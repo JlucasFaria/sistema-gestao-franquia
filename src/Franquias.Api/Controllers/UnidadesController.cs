@@ -209,4 +209,24 @@ public class UnidadesController(IUnidadeService unidades) : ControllerBase
 
         return Ok(unidade);
     }
+
+    /// <summary>
+    /// Exclui a unidade de forma lógica: o cadastro é inativado, e não apagado, para que
+    /// vendas, estoque e royalties continuem vinculados a ela. Tem o mesmo efeito de
+    /// <c>PATCH /api/unidades/{id}/inativar</c>.
+    /// </summary>
+    /// <param name="id">Identificador da unidade.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
+    /// <response code="204">Unidade inativada. Repetir a chamada não produz efeito adicional.</response>
+    /// <response code="404">Unidade inexistente.</response>
+    [HttpDelete("{id:int}")]
+    [Authorize(Policy = PoliticasDeAcesso.Administrador)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Excluir(int id, CancellationToken cancellationToken)
+    {
+        await unidades.InativarAsync(id, cancellationToken);
+
+        return NoContent();
+    }
 }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Franquias.Api.Common.Autenticacao;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi.Models;
@@ -41,7 +42,7 @@ public sealed class RespostasDeAutorizacaoFiltro : IOperationFilter
         ];
 
         operation.Responses.TryAdd(
-            StatusCodes.Status401Unauthorized.ToString(),
+            StatusCodes.Status401Unauthorized.ToString(CultureInfo.InvariantCulture),
             new OpenApiResponse { Description = "Token ausente, inválido ou expirado." });
 
         // O 403 só é possível quando a política exige mais que o perfil de operador, que é
@@ -54,7 +55,7 @@ public sealed class RespostasDeAutorizacaoFiltro : IOperationFilter
         if (exigePerfilSuperior)
         {
             operation.Responses.TryAdd(
-                StatusCodes.Status403Forbidden.ToString(),
+                StatusCodes.Status403Forbidden.ToString(CultureInfo.InvariantCulture),
                 new OpenApiResponse { Description = "O perfil do usuário não tem permissão para esta operação." });
         }
     }
