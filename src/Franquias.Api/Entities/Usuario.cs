@@ -45,15 +45,6 @@ public class Usuario : EntidadeBase
     }
 
     /// <summary>
-    /// Substitui o hash da senha. O cálculo do hash é responsabilidade do serviço de autenticação.
-    /// </summary>
-    public void AlterarSenha(string senhaHash)
-    {
-        SenhaHash = senhaHash;
-        RegistrarAtualizacao();
-    }
-
-    /// <summary>
     /// Vincula o usuário a outro perfil de acesso.
     /// </summary>
     public void VincularPerfil(int perfilId)

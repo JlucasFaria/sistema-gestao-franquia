@@ -72,18 +72,6 @@ public class Venda : EntidadeBase
     }
 
     /// <summary>
-    /// Remove um item da venda e recalcula o total.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">Se a venda não estiver mais em aberto.</exception>
-    public void RemoverItem(ItemVenda item)
-    {
-        ExigirVendaEmAberto();
-
-        _itens.Remove(item);
-        RecalcularTotal();
-    }
-
-    /// <summary>
     /// Conclui a venda. A partir daqui os itens não podem mais ser alterados e o estoque
     /// já deve ter sido baixado pelo serviço de vendas, dentro da mesma transação.
     /// </summary>
