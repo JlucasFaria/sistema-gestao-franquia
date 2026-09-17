@@ -124,10 +124,10 @@ Todas as listagens aceitam `pagina`, `tamanhoPagina` (até 100), `busca`, `orden
 | Perfis | `GET /api/perfis`, `GET /api/perfis/{id}`, `PUT /api/perfis/usuarios/{usuarioId}` | todos (consulta) / administrador |
 | Franqueadoras | `GET, POST /api/franqueadoras`, `GET, PUT /api/franqueadoras/{id}` | todos (consulta) / administrador |
 | Franqueados | `GET, POST /api/franqueados`, `GET, PUT /api/franqueados/{id}` | gestor (consulta) / administrador |
-| Unidades | `GET, POST /api/unidades`, `GET, PUT /api/unidades/{id}`, `PATCH /api/unidades/{id}/situacao`, `/percentual-royalty`, `/ativar` e `/inativar` | todos (consulta) / administrador |
+| Unidades | `GET, POST /api/unidades`, `GET, PUT, DELETE /api/unidades/{id}`, `PATCH /api/unidades/{id}/situacao`, `/percentual-royalty`, `/ativar` e `/inativar` | todos (consulta) / administrador |
 | Responsáveis | `GET, POST /api/unidades/{unidadeId}/responsaveis`, `PUT, DELETE .../responsaveis/{id}` | todos (consulta) / gestor |
 | Categorias | `GET, POST /api/categorias`, `GET, PUT, DELETE /api/categorias/{id}`, `PATCH .../ativar` e `/inativar` | todos (consulta) / administrador |
-| Produtos e serviços | `GET, POST /api/produtos`, `GET, PUT /api/produtos/{id}`, `PATCH /api/produtos/{id}/status`, `/ativar` e `/inativar` | todos (consulta) / administrador |
+| Produtos e serviços | `GET, POST /api/produtos`, `GET, PUT, DELETE /api/produtos/{id}`, `PATCH /api/produtos/{id}/status`, `/ativar` e `/inativar` | todos (consulta) / administrador |
 | Fornecedores | `GET, POST /api/fornecedores`, `GET, PUT, DELETE /api/fornecedores/{id}`, `PATCH .../ativar` e `/inativar` | gestor (consulta) / administrador |
 | Produtos do fornecedor | `GET, POST /api/fornecedores/{id}/produtos`, `PUT, DELETE .../produtos/{produtoId}` | gestor (consulta) / administrador |
 | Estoque | `GET /api/estoques`, `GET .../unidades/{u}/produtos/{p}`, `GET .../movimentacoes`, `POST .../entrada`, `POST .../saida`, `POST .../ajuste`, `PUT .../minimo` | operador / gestor (ajuste e mínimo) |
@@ -156,7 +156,8 @@ liberado ao operador.
 - A cobrança só é quitada com o valor integral. Cobranças vencidas passam a atrasadas.
 - O chamado encerrado não aceita mais mensagens nem mudanças.
 - Registros importantes não são apagados: usuários, unidades, produtos e fornecedores são
-  inativados, e categorias e fornecedores com vínculos não podem ser excluídos. A rede
+  inativados (em unidades e produtos, o `DELETE` faz essa exclusão lógica), e categorias
+  e fornecedores com vínculos não podem ser excluídos. A rede
   também nunca fica sem um administrador ativo.
 - Cada perfil acessa apenas as operações permitidas a ele.
 - Erros de validação e de regra de negócio retornam no formato `application/problem+json`,

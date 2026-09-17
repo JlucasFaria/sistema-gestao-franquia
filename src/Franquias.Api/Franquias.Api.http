@@ -431,6 +431,17 @@ Authorization: Bearer {{admin}}
 
 ###
 
+# Exclusão lógica: a unidade é inativada e o histórico é preservado (204)
+DELETE {{baseUrl}}/api/unidades/{{novaUnidade.response.body.$.id}}
+Authorization: Bearer {{admin}}
+
+###
+
+PATCH {{baseUrl}}/api/unidades/{{novaUnidade.response.body.$.id}}/ativar
+Authorization: Bearer {{admin}}
+
+###
+
 GET {{baseUrl}}/api/unidades/{{unidade}}/responsaveis
 Authorization: Bearer {{operador}}
 
@@ -598,6 +609,17 @@ Content-Type: application/json
 ###
 
 PATCH {{baseUrl}}/api/produtos/{{novoProduto.response.body.$.id}}/inativar
+Authorization: Bearer {{admin}}
+
+###
+
+PATCH {{baseUrl}}/api/produtos/{{novoProduto.response.body.$.id}}/ativar
+Authorization: Bearer {{admin}}
+
+###
+
+# Exclusão lógica: o item é inativado e o histórico é preservado (204)
+DELETE {{baseUrl}}/api/produtos/{{novoProduto.response.body.$.id}}
 Authorization: Bearer {{admin}}
 
 ###

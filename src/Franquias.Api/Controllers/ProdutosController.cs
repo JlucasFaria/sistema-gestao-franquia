@@ -171,4 +171,24 @@ public class ProdutosController(IProdutoServicoService produtos) : ControllerBas
 
         return Ok(produto);
     }
+
+    /// <summary>
+    /// Exclui o item de forma lógica: o cadastro é inativado, e não apagado, para preservar
+    /// as vendas e o estoque que o referenciam. Tem o mesmo efeito de
+    /// <c>PATCH /api/produtos/{id}/inativar</c>.
+    /// </summary>
+    /// <param name="id">Identificador do item.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
+    /// <response code="204">Item inativado. Repetir a chamada não produz efeito adicional.</response>
+    /// <response code="404">Item inexistente.</response>
+    [HttpDelete("{id:int}")]
+    [Authorize(Policy = PoliticasDeAcesso.Administrador)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Excluir(int id, CancellationToken cancellationToken)
+    {
+        await produtos.InativarAsync(id, cancellationToken);
+
+        return NoContent();
+    }
 }
