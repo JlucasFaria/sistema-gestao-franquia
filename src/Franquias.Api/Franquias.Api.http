@@ -1,0 +1,1078 @@
+# Coleção de requisições da API de Gestão de Franquias.
+#
+# Uso: com a API rodando (dotnet run --project src/Franquias.Api), execute as requisições
+# pelo Visual Studio 2022 ou pela extensão REST Client do VS Code. Rode primeiro os três
+# logins: os tokens são reaproveitados nas demais requisições.
+#
+# Os identificadores fixos referem-se aos dados de exemplo carregados em um banco novo:
+#   unidades: 1 Paulista, 2 Campinas, 3 Savassi, 4 Curitiba (implantação), 5 Niterói (inativa)
+#   produtos: 1 Coxinha, 4 Suco, 9 Consultoria (serviço), 11 Esfiha (descontinuado)
+#   usuários: 1 administrador, 2 gestor, 3 operador
+
+@baseUrl = http://localhost:5270
+@unidade = 1
+@produto = 1
+@fornecedor = 1
+@chamado = 1
+@royalty = 3
+
+# Período usado na geração de royalty: precisa estar encerrado (fim antes de hoje) e ainda
+# sem cobrança. Com os dados de exemplo, use do primeiro dia do mês corrente até ontem.
+@competenciaInicio = 2026-09-01
+@competenciaFim = 2026-09-15
+@competenciaVencimento = 2026-10-10
+
+###############################################################################
+# Autenticação
+###############################################################################
+
+# @name loginAdmin
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@franquias.com.br",
+  "senha": "Admin@123"
+}
+
+###
+
+# @name loginGestor
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "gestor@franquias.com.br",
+  "senha": "Gestor@123"
+}
+
+###
+
+# @name loginOperador
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "operador@franquias.com.br",
+  "senha": "Operador@123"
+}
+
+###
+
+@admin = {{loginAdmin.response.body.$.token}}
+@gestor = {{loginGestor.response.body.$.token}}
+@operador = {{loginOperador.response.body.$.token}}
+
+# Credenciais inválidas: 401
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@franquias.com.br",
+  "senha": "senha-errada"
+}
+
+###
+
+# Sem token: 401
+GET {{baseUrl}}/api/unidades
+
+###
+
+# Operador tentando uma ação de administrador: 403
+POST {{baseUrl}}/api/categorias
+Authorization: Bearer {{operador}}
+Content-Type: application/json
+
+{
+  "nome": "Sobremesas"
+}
+
+###
+
+# Registro de usuário já com login (somente administrador)
+POST {{baseUrl}}/api/auth/registrar
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "nome": "Paula Ribeiro",
+  "email": "paula.ribeiro@franquias.com.br",
+  "senha": "Paula@2026",
+  "perfilId": 3
+}
+
+###############################################################################
+# Usuários e perfis
+###############################################################################
+
+GET {{baseUrl}}/api/usuarios?pagina=1&tamanhoPagina=10&ordenarPor=nome
+Authorization: Bearer {{gestor}}
+
+###
+
+GET {{baseUrl}}/api/usuarios/2
+Authorization: Bearer {{gestor}}
+
+###
+
+# @name novoUsuario
+POST {{baseUrl}}/api/usuarios
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "nome": "Tiago Freitas",
+  "email": "tiago.freitas@franquias.com.br",
+  "senha": "Tiago@2026",
+  "perfilId": 3
+}
+
+###
+
+# E-mail duplicado: 409
+POST {{baseUrl}}/api/usuarios
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "nome": "Outro Gestor",
+  "email": "gestor@franquias.com.br",
+  "senha": "Outro@2026",
+  "perfilId": 2
+}
+
+###
+
+PUT {{baseUrl}}/api/usuarios/{{novoUsuario.response.body.$.id}}
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "nome": "Tiago Freitas Souza",
+  "email": "tiago.freitas@franquias.com.br"
+}
+
+###
+
+PATCH {{baseUrl}}/api/usuarios/{{novoUsuario.response.body.$.id}}/inativar
+Authorization: Bearer {{admin}}
+
+###
+
+PATCH {{baseUrl}}/api/usuarios/{{novoUsuario.response.body.$.id}}/ativar
+Authorization: Bearer {{admin}}
+
+###
+
+GET {{baseUrl}}/api/perfis
+Authorization: Bearer {{operador}}
+
+###
+
+GET {{baseUrl}}/api/perfis/2
+Authorization: Bearer {{operador}}
+
+###
+
+PUT {{baseUrl}}/api/perfis/usuarios/{{novoUsuario.response.body.$.id}}
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "perfilId": 2
+}
+
+###############################################################################
+# Franqueadora, franqueados, unidades e responsáveis
+###############################################################################
+
+GET {{baseUrl}}/api/franqueadoras
+Authorization: Bearer {{operador}}
+
+###
+
+GET {{baseUrl}}/api/franqueadoras/1
+Authorization: Bearer {{operador}}
+
+###
+
+# @name novaFranqueadora
+POST {{baseUrl}}/api/franqueadoras
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "razaoSocial": "Café da Serra Franquias S.A.",
+  "nomeFantasia": "Café da Serra",
+  "cnpj": "44.555.666/0001-81",
+  "email": "contato@cafedaserra.com.br",
+  "telefone": "(11) 3222-1000",
+  "endereco": {
+    "logradouro": "Av. Brigadeiro Faria Lima",
+    "numero": "3000",
+    "complemento": "10º andar",
+    "bairro": "Itaim Bibi",
+    "cidade": "São Paulo",
+    "uf": "SP",
+    "cep": "01452-000"
+  }
+}
+
+###
+
+PUT {{baseUrl}}/api/franqueadoras/{{novaFranqueadora.response.body.$.id}}
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "razaoSocial": "Café da Serra Franquias S.A.",
+  "nomeFantasia": "Café da Serra Brasil",
+  "email": "contato@cafedaserra.com.br",
+  "telefone": "(11) 3222-1000",
+  "endereco": {
+    "logradouro": "Av. Brigadeiro Faria Lima",
+    "numero": "3000",
+    "complemento": "12º andar",
+    "bairro": "Itaim Bibi",
+    "cidade": "São Paulo",
+    "uf": "SP",
+    "cep": "01452-000"
+  }
+}
+
+###
+
+GET {{baseUrl}}/api/franqueados?busca=Ana
+Authorization: Bearer {{gestor}}
+
+###
+
+GET {{baseUrl}}/api/franqueados/1
+Authorization: Bearer {{gestor}}
+
+###
+
+# @name novoFranqueado
+POST {{baseUrl}}/api/franqueados
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "nome": "Diego Carvalho",
+  "cpf": "529.982.247-25",
+  "email": "diego.carvalho@email.com",
+  "telefone": "(19) 99888-7766",
+  "dataAdesao": "2026-09-01"
+}
+
+###
+
+# CPF inválido: 400
+POST {{baseUrl}}/api/franqueados
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "nome": "Cadastro Inválido",
+  "cpf": "111.111.111-11",
+  "email": "invalido@email.com",
+  "telefone": "(19) 99888-7766",
+  "dataAdesao": "2026-09-01"
+}
+
+###
+
+PUT {{baseUrl}}/api/franqueados/{{novoFranqueado.response.body.$.id}}
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "nome": "Diego Carvalho Lima",
+  "email": "diego.carvalho@email.com",
+  "telefone": "(19) 99888-7766"
+}
+
+###
+
+# Unidades ativas e inativas, busca por nome, cidade, CNPJ ou responsável
+GET {{baseUrl}}/api/unidades?ativo=true&pagina=1&tamanhoPagina=10
+Authorization: Bearer {{operador}}
+
+###
+
+GET {{baseUrl}}/api/unidades?ativo=false
+Authorization: Bearer {{operador}}
+
+###
+
+GET {{baseUrl}}/api/unidades?busca=Belo Horizonte
+Authorization: Bearer {{operador}}
+
+###
+
+GET {{baseUrl}}/api/unidades?busca=Gustavo
+Authorization: Bearer {{operador}}
+
+###
+
+GET {{baseUrl}}/api/unidades?situacao=Ativa&uf=SP&ordenarPor=nomeFantasia&decrescente=true
+Authorization: Bearer {{operador}}
+
+###
+
+GET {{baseUrl}}/api/unidades/{{unidade}}
+Authorization: Bearer {{operador}}
+
+###
+
+# @name novaUnidade
+POST {{baseUrl}}/api/unidades
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "franqueadoraId": 1,
+  "franqueadoId": {{novoFranqueado.response.body.$.id}},
+  "razaoSocial": "Sabor Brasil Ribeirão Alimentos LTDA",
+  "nomeFantasia": "Sabor Brasil Ribeirão",
+  "cnpj": "12.345.678/0001-95",
+  "email": "ribeirao@saborbrasil.com.br",
+  "telefone": "(16) 3610-2000",
+  "endereco": {
+    "logradouro": "Av. Presidente Vargas",
+    "numero": "1200",
+    "bairro": "Jardim América",
+    "cidade": "Ribeirão Preto",
+    "uf": "SP",
+    "cep": "14020-260"
+  },
+  "dataInicio": "2026-10-01",
+  "percentualRoyalty": 5.5
+}
+
+###
+
+# CNPJ já cadastrado: 409
+POST {{baseUrl}}/api/unidades
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "franqueadoraId": 1,
+  "franqueadoId": 1,
+  "razaoSocial": "Unidade Duplicada LTDA",
+  "nomeFantasia": "Unidade Duplicada",
+  "cnpj": "34.567.890/0001-30",
+  "email": "duplicada@saborbrasil.com.br",
+  "telefone": "(11) 3000-4000",
+  "endereco": {
+    "logradouro": "Rua A",
+    "numero": "1",
+    "bairro": "Centro",
+    "cidade": "São Paulo",
+    "uf": "SP",
+    "cep": "01001-000"
+  },
+  "dataInicio": "2026-10-01",
+  "percentualRoyalty": 5
+}
+
+###
+
+PUT {{baseUrl}}/api/unidades/{{novaUnidade.response.body.$.id}}
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "razaoSocial": "Sabor Brasil Ribeirão Alimentos LTDA",
+  "nomeFantasia": "Sabor Brasil Ribeirão Preto",
+  "email": "ribeiraopreto@saborbrasil.com.br",
+  "telefone": "(16) 3610-2000",
+  "endereco": {
+    "logradouro": "Av. Presidente Vargas",
+    "numero": "1250",
+    "bairro": "Jardim América",
+    "cidade": "Ribeirão Preto",
+    "uf": "SP",
+    "cep": "14020-260"
+  }
+}
+
+###
+
+PATCH {{baseUrl}}/api/unidades/{{novaUnidade.response.body.$.id}}/situacao
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "situacao": "Ativa"
+}
+
+###
+
+PATCH {{baseUrl}}/api/unidades/{{novaUnidade.response.body.$.id}}/percentual-royalty
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "percentualRoyalty": 6
+}
+
+###
+
+PATCH {{baseUrl}}/api/unidades/{{novaUnidade.response.body.$.id}}/inativar
+Authorization: Bearer {{admin}}
+
+###
+
+PATCH {{baseUrl}}/api/unidades/{{novaUnidade.response.body.$.id}}/ativar
+Authorization: Bearer {{admin}}
+
+###
+
+GET {{baseUrl}}/api/unidades/{{unidade}}/responsaveis
+Authorization: Bearer {{operador}}
+
+###
+
+# @name novoResponsavel
+POST {{baseUrl}}/api/unidades/{{novaUnidade.response.body.$.id}}/responsaveis
+Authorization: Bearer {{gestor}}
+Content-Type: application/json
+
+{
+  "nome": "Renata Oliveira",
+  "cpf": "123.456.789-09",
+  "cargo": "Gerente",
+  "email": "renata.oliveira@email.com",
+  "telefone": "(16) 99777-6655"
+}
+
+###
+
+PUT {{baseUrl}}/api/unidades/{{novaUnidade.response.body.$.id}}/responsaveis/{{novoResponsavel.response.body.$.id}}
+Authorization: Bearer {{gestor}}
+Content-Type: application/json
+
+{
+  "nome": "Renata Oliveira",
+  "cargo": "Gerente geral",
+  "email": "renata.oliveira@email.com",
+  "telefone": "(16) 99777-6655"
+}
+
+###
+
+DELETE {{baseUrl}}/api/unidades/{{novaUnidade.response.body.$.id}}/responsaveis/{{novoResponsavel.response.body.$.id}}
+Authorization: Bearer {{gestor}}
+
+###############################################################################
+# Categorias e catálogo de produtos ou serviços
+###############################################################################
+
+GET {{baseUrl}}/api/categorias
+Authorization: Bearer {{operador}}
+
+###
+
+GET {{baseUrl}}/api/categorias/1
+Authorization: Bearer {{operador}}
+
+###
+
+# @name novaCategoria
+POST {{baseUrl}}/api/categorias
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "nome": "Sobremesas",
+  "descricao": "Doces e sobremesas do cardápio."
+}
+
+###
+
+PUT {{baseUrl}}/api/categorias/{{novaCategoria.response.body.$.id}}
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "nome": "Sobremesas e Doces",
+  "descricao": "Doces e sobremesas do cardápio."
+}
+
+###
+
+PATCH {{baseUrl}}/api/categorias/{{novaCategoria.response.body.$.id}}/inativar
+Authorization: Bearer {{admin}}
+
+###
+
+PATCH {{baseUrl}}/api/categorias/{{novaCategoria.response.body.$.id}}/ativar
+Authorization: Bearer {{admin}}
+
+###
+
+# Produtos por nome, categoria e status
+GET {{baseUrl}}/api/produtos?busca=suco
+Authorization: Bearer {{operador}}
+
+###
+
+GET {{baseUrl}}/api/produtos?categoriaId=2&status=Ativo&ordenarPor=precoBase&decrescente=true
+Authorization: Bearer {{operador}}
+
+###
+
+GET {{baseUrl}}/api/produtos?status=Descontinuado
+Authorization: Bearer {{operador}}
+
+###
+
+GET {{baseUrl}}/api/produtos/{{produto}}
+Authorization: Bearer {{operador}}
+
+###
+
+# @name novoProduto
+POST {{baseUrl}}/api/produtos
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "categoriaId": {{novaCategoria.response.body.$.id}},
+  "nome": "Brigadeiro Gourmet",
+  "descricao": "Unidade de 25g.",
+  "precoBase": 4.50,
+  "ehServico": false
+}
+
+###
+
+# Preço com três casas decimais: 400
+POST {{baseUrl}}/api/produtos
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "categoriaId": 1,
+  "nome": "Produto Inválido",
+  "precoBase": 4.555,
+  "ehServico": false
+}
+
+###
+
+PUT {{baseUrl}}/api/produtos/{{novoProduto.response.body.$.id}}
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "categoriaId": {{novaCategoria.response.body.$.id}},
+  "nome": "Brigadeiro Gourmet",
+  "descricao": "Unidade de 30g.",
+  "precoBase": 5.00
+}
+
+###
+
+PATCH {{baseUrl}}/api/produtos/{{novoProduto.response.body.$.id}}/status
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "status": "Inativo"
+}
+
+###
+
+PATCH {{baseUrl}}/api/produtos/{{novoProduto.response.body.$.id}}/status
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "status": "Ativo"
+}
+
+###
+
+PATCH {{baseUrl}}/api/produtos/{{novoProduto.response.body.$.id}}/inativar
+Authorization: Bearer {{admin}}
+
+###
+
+PATCH {{baseUrl}}/api/produtos/{{novoProduto.response.body.$.id}}/ativar
+Authorization: Bearer {{admin}}
+
+###
+
+# Categoria com itens vinculados não pode ser excluída: 422 (a saída é inativá-la)
+DELETE {{baseUrl}}/api/categorias/{{novaCategoria.response.body.$.id}}
+Authorization: Bearer {{admin}}
+
+###############################################################################
+# Fornecedores
+###############################################################################
+
+# Por nome ou CNPJ e por status
+GET {{baseUrl}}/api/fornecedores?busca=Bebidas
+Authorization: Bearer {{gestor}}
+
+###
+
+GET {{baseUrl}}/api/fornecedores?busca=90123456
+Authorization: Bearer {{gestor}}
+
+###
+
+GET {{baseUrl}}/api/fornecedores?ativo=false
+Authorization: Bearer {{gestor}}
+
+###
+
+GET {{baseUrl}}/api/fornecedores/{{fornecedor}}
+Authorization: Bearer {{gestor}}
+
+###
+
+# @name novoFornecedor
+POST {{baseUrl}}/api/fornecedores
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "razaoSocial": "Doces Finos Distribuidora LTDA",
+  "nomeFantasia": "Doces Finos",
+  "cnpj": "11.444.777/0001-61",
+  "email": "vendas@docesfinos.com.br",
+  "telefone": "(11) 3444-5566",
+  "endereco": {
+    "logradouro": "Rua Vergueiro",
+    "numero": "900",
+    "bairro": "Liberdade",
+    "cidade": "São Paulo",
+    "uf": "SP",
+    "cep": "01504-001"
+  }
+}
+
+###
+
+PUT {{baseUrl}}/api/fornecedores/{{novoFornecedor.response.body.$.id}}
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "razaoSocial": "Doces Finos Distribuidora LTDA",
+  "nomeFantasia": "Doces Finos SP",
+  "email": "vendas@docesfinos.com.br",
+  "telefone": "(11) 3444-5566",
+  "endereco": {
+    "logradouro": "Rua Vergueiro",
+    "numero": "950",
+    "bairro": "Liberdade",
+    "cidade": "São Paulo",
+    "uf": "SP",
+    "cep": "01504-001"
+  }
+}
+
+###
+
+GET {{baseUrl}}/api/fornecedores/{{fornecedor}}/produtos
+Authorization: Bearer {{gestor}}
+
+###
+
+POST {{baseUrl}}/api/fornecedores/{{novoFornecedor.response.body.$.id}}/produtos
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "produtoServicoId": {{novoProduto.response.body.$.id}},
+  "precoFornecimento": 1.90,
+  "prazoEntregaEmDias": 3
+}
+
+###
+
+PUT {{baseUrl}}/api/fornecedores/{{novoFornecedor.response.body.$.id}}/produtos/{{novoProduto.response.body.$.id}}
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "precoFornecimento": 1.75,
+  "prazoEntregaEmDias": 2
+}
+
+###
+
+DELETE {{baseUrl}}/api/fornecedores/{{novoFornecedor.response.body.$.id}}/produtos/{{novoProduto.response.body.$.id}}
+Authorization: Bearer {{admin}}
+
+###
+
+PATCH {{baseUrl}}/api/fornecedores/{{novoFornecedor.response.body.$.id}}/inativar
+Authorization: Bearer {{admin}}
+
+###
+
+PATCH {{baseUrl}}/api/fornecedores/{{novoFornecedor.response.body.$.id}}/ativar
+Authorization: Bearer {{admin}}
+
+###
+
+# Exclusão permitida porque o fornecedor não tem mais produtos homologados: 204
+DELETE {{baseUrl}}/api/fornecedores/{{novoFornecedor.response.body.$.id}}
+Authorization: Bearer {{admin}}
+
+###############################################################################
+# Estoque por unidade
+###############################################################################
+
+# Estoque de uma unidade e itens abaixo do mínimo
+GET {{baseUrl}}/api/estoques?unidadeFranqueadaId={{unidade}}
+Authorization: Bearer {{operador}}
+
+###
+
+GET {{baseUrl}}/api/estoques?abaixoDoMinimo=true
+Authorization: Bearer {{operador}}
+
+###
+
+GET {{baseUrl}}/api/estoques/unidades/{{unidade}}/produtos/{{produto}}
+Authorization: Bearer {{operador}}
+
+###
+
+GET {{baseUrl}}/api/estoques/unidades/{{unidade}}/produtos/{{produto}}/movimentacoes?pagina=1&tamanhoPagina=5
+Authorization: Bearer {{operador}}
+
+###
+
+POST {{baseUrl}}/api/estoques/unidades/{{unidade}}/produtos/{{produto}}/entrada
+Authorization: Bearer {{operador}}
+Content-Type: application/json
+
+{
+  "quantidade": 50,
+  "observacao": "Reposição semanal"
+}
+
+###
+
+POST {{baseUrl}}/api/estoques/unidades/{{unidade}}/produtos/{{produto}}/saida
+Authorization: Bearer {{operador}}
+Content-Type: application/json
+
+{
+  "quantidade": 3,
+  "observacao": "Descarte por validade"
+}
+
+###
+
+# Saída maior que o saldo: 422 (o estoque não fica negativo)
+POST {{baseUrl}}/api/estoques/unidades/{{unidade}}/produtos/{{produto}}/saida
+Authorization: Bearer {{operador}}
+Content-Type: application/json
+
+{
+  "quantidade": 100000
+}
+
+###
+
+POST {{baseUrl}}/api/estoques/unidades/{{unidade}}/produtos/{{produto}}/ajuste
+Authorization: Bearer {{gestor}}
+Content-Type: application/json
+
+{
+  "quantidadeApurada": 420,
+  "observacao": "Inventário mensal"
+}
+
+###
+
+PUT {{baseUrl}}/api/estoques/unidades/{{unidade}}/produtos/{{produto}}/minimo
+Authorization: Bearer {{gestor}}
+Content-Type: application/json
+
+{
+  "quantidadeMinima": 60
+}
+
+###############################################################################
+# Vendas
+###############################################################################
+
+# Vendas por unidade e intervalo de datas
+GET {{baseUrl}}/api/vendas?unidadeFranqueadaId={{unidade}}&dataInicial=2026-08-01&dataFinal=2026-08-31
+Authorization: Bearer {{operador}}
+
+###
+
+GET {{baseUrl}}/api/vendas?status=Pendente
+Authorization: Bearer {{operador}}
+
+###
+
+# @name novaVenda
+POST {{baseUrl}}/api/vendas
+Authorization: Bearer {{operador}}
+Content-Type: application/json
+
+{
+  "unidadeFranqueadaId": {{unidade}},
+  "itens": [
+    { "produtoServicoId": 1, "quantidade": 2 },
+    { "produtoServicoId": 4, "quantidade": 1 },
+    { "produtoServicoId": 9, "quantidade": 1, "precoUnitario": 300.00 }
+  ]
+}
+
+###
+
+GET {{baseUrl}}/api/vendas/{{novaVenda.response.body.$.id}}
+Authorization: Bearer {{operador}}
+
+###
+
+# Confirmar baixa o estoque dos produtos físicos
+POST {{baseUrl}}/api/vendas/{{novaVenda.response.body.$.id}}/confirmar
+Authorization: Bearer {{operador}}
+
+###
+
+# Cancelar estorna o estoque (somente gestão)
+POST {{baseUrl}}/api/vendas/{{novaVenda.response.body.$.id}}/cancelar
+Authorization: Bearer {{gestor}}
+
+###
+
+# Venda sem itens: 400
+POST {{baseUrl}}/api/vendas
+Authorization: Bearer {{operador}}
+Content-Type: application/json
+
+{
+  "unidadeFranqueadaId": {{unidade}},
+  "itens": []
+}
+
+###
+
+# Unidade inativa não vende: 422
+POST {{baseUrl}}/api/vendas
+Authorization: Bearer {{operador}}
+Content-Type: application/json
+
+{
+  "unidadeFranqueadaId": 5,
+  "itens": [
+    { "produtoServicoId": 1, "quantidade": 1 }
+  ]
+}
+
+###############################################################################
+# Royalties
+###############################################################################
+
+GET {{baseUrl}}/api/royalties?situacao=Atrasado
+Authorization: Bearer {{gestor}}
+
+###
+
+GET {{baseUrl}}/api/royalties?unidadeFranqueadaId={{unidade}}
+Authorization: Bearer {{gestor}}
+
+###
+
+# @name cobranca
+GET {{baseUrl}}/api/royalties/{{royalty}}
+Authorization: Bearer {{gestor}}
+
+###
+
+# @name novoRoyalty
+POST {{baseUrl}}/api/royalties
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "unidadeFranqueadaId": {{unidade}},
+  "periodoInicio": "{{competenciaInicio}}",
+  "periodoFim": "{{competenciaFim}}",
+  "dataVencimento": "{{competenciaVencimento}}"
+}
+
+###
+
+# Baixa pelo valor devido lido na consulta acima
+POST {{baseUrl}}/api/royalties/{{royalty}}/pagamento
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "dataPagamento": "{{competenciaFim}}",
+  "valorPago": {{cobranca.response.body.$.valorDevido}}
+}
+
+###
+
+# Cobrança já quitada: 422
+POST {{baseUrl}}/api/royalties/{{royalty}}/pagamento
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "dataPagamento": "{{competenciaFim}}",
+  "valorPago": {{cobranca.response.body.$.valorDevido}}
+}
+
+###
+
+POST {{baseUrl}}/api/royalties/atualizar-atrasos
+Authorization: Bearer {{admin}}
+
+###
+
+# Valores devidos e pagos de uma unidade e da rede
+GET {{baseUrl}}/api/royalties/unidades/{{unidade}}/resumo
+Authorization: Bearer {{gestor}}
+
+###
+
+GET {{baseUrl}}/api/royalties/resumo-por-unidade?competenciaInicio=2026-06-01
+Authorization: Bearer {{gestor}}
+
+###############################################################################
+# Chamados de suporte
+###############################################################################
+
+GET {{baseUrl}}/api/chamados?unidadeFranqueadaId={{unidade}}
+Authorization: Bearer {{operador}}
+
+###
+
+# Chamados em aberto, por prioridade ou unidade
+GET {{baseUrl}}/api/chamados/em-aberto
+Authorization: Bearer {{operador}}
+
+###
+
+GET {{baseUrl}}/api/chamados/em-aberto?prioridade=Alta
+Authorization: Bearer {{operador}}
+
+###
+
+GET {{baseUrl}}/api/chamados/{{chamado}}
+Authorization: Bearer {{operador}}
+
+###
+
+# @name novoChamado
+POST {{baseUrl}}/api/chamados
+Authorization: Bearer {{operador}}
+Content-Type: application/json
+
+{
+  "unidadeFranqueadaId": {{unidade}},
+  "categoria": "Sistema",
+  "assunto": "Leitor de código de barras sem resposta",
+  "descricao": "O leitor do caixa 1 parou de reconhecer os produtos.",
+  "prioridade": "Alta"
+}
+
+###
+
+POST {{baseUrl}}/api/chamados/{{novoChamado.response.body.$.id}}/interacoes
+Authorization: Bearer {{operador}}
+Content-Type: application/json
+
+{
+  "mensagem": "Trocamos o cabo USB e o problema continua."
+}
+
+###
+
+PATCH {{baseUrl}}/api/chamados/{{novoChamado.response.body.$.id}}/prioridade
+Authorization: Bearer {{gestor}}
+Content-Type: application/json
+
+{
+  "prioridade": "Critica"
+}
+
+###
+
+PATCH {{baseUrl}}/api/chamados/{{novoChamado.response.body.$.id}}/status
+Authorization: Bearer {{gestor}}
+Content-Type: application/json
+
+{
+  "status": "EmAtendimento",
+  "observacao": "Equipamento reserva enviado."
+}
+
+###
+
+PATCH {{baseUrl}}/api/chamados/{{novoChamado.response.body.$.id}}/status
+Authorization: Bearer {{gestor}}
+Content-Type: application/json
+
+{
+  "status": "Encerrado",
+  "observacao": "Leitor substituído."
+}
+
+###
+
+# Chamado encerrado não aceita mensagem: 422
+POST {{baseUrl}}/api/chamados/{{novoChamado.response.body.$.id}}/interacoes
+Authorization: Bearer {{operador}}
+Content-Type: application/json
+
+{
+  "mensagem": "Mais uma mensagem."
+}
+
+###############################################################################
+# Relatórios e indicadores
+###############################################################################
+
+GET {{baseUrl}}/api/relatorios/faturamento?dataInicial=2026-06-01&dataFinal=2026-08-31
+Authorization: Bearer {{gestor}}
+
+###
+
+GET {{baseUrl}}/api/relatorios/ranking-unidades?limite=3
+Authorization: Bearer {{gestor}}
+
+###
+
+GET {{baseUrl}}/api/relatorios/royalties
+Authorization: Bearer {{gestor}}
+
+###
+
+GET {{baseUrl}}/api/relatorios/produtos-mais-vendidos?limite=5
+Authorization: Bearer {{gestor}}
+
+###
+
+GET {{baseUrl}}/api/relatorios/estoque-critico
+Authorization: Bearer {{operador}}
+
+###
+
+GET {{baseUrl}}/api/relatorios/chamados-por-status
+Authorization: Bearer {{gestor}}
+
+###
+
+# Intervalo de datas invertido: 400
+GET {{baseUrl}}/api/relatorios/faturamento?dataInicial=2026-09-01&dataFinal=2026-08-01
+Authorization: Bearer {{gestor}}
